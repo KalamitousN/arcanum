@@ -2,8 +2,10 @@
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using System;
+using System.Collections.Generic;
 using System.Linq.Expressions;
 using System.Runtime.CompilerServices;
+
 
 namespace firstgame
 {
@@ -11,12 +13,15 @@ namespace firstgame
     {
         private GraphicsDeviceManager _graphics;
         private SpriteBatch _spriteBatch;
-        Texture2D floorTile;
-        Texture2D playerPlaceholder;
-        int gameWidth, gameHeight;
-        int cameraX, cameraY, playerCenterX, playerCenterY;
-        int playerX = 0, playerY = -960;
-        float playerYPhysics = 0, playerXPhysics = 0;
+        Texture2D grassTile, dirtTile, stoneTile;
+        int gameWidth, gameHeight, cameraX, cameraY, gameState;
+
+        List<int> terrain = new List<int>();
+        List<Texture2D> terrainNames = new List<Texture2D> ();
+        Vector2 playerPositionOffset;
+        int worldWidth, worldHeight, playerPositionX, playerPositionY;
+
+        Random rnd = new Random();
 
         public Game1()
         {
@@ -27,7 +32,6 @@ namespace firstgame
 
         protected override void Initialize()
         {
-            Random rnd = new Random();
             int startRandomNumber = rnd.Next(1, 4);
             int titleVariable = startRandomNumber;
 
@@ -43,7 +47,7 @@ namespace firstgame
                     Window.Title = "Arcanum: You can do it, unless you can't.";
                     break;
                 case 4:
-                    Window.Title = "Arcanum: How are you doing fellow gamers";
+                    Window.Title = "Arcanum: Can you dig it?, i don't get it.";
                     break;
                 default:
                     Window.Title = "Arcanum: Something broke :/";
@@ -64,8 +68,14 @@ namespace firstgame
         {
             _spriteBatch = new SpriteBatch(GraphicsDevice);
 
-            floorTile = Content.Load<Texture2D>("bricktexture");
-            playerPlaceholder = Content.Load<Texture2D>("playerbasic");
+            grassTile = Content.Load<Texture2D>("Sprites/grass");
+            dirtTile = Content.Load<Texture2D>("Sprites/dirt");
+            stoneTile = Content.Load<Texture2D>("Sprites/stone");
+            
+            terrainNames.Add (grassTile);
+            terrainNames.Add (grassTile);
+            terrainNames.Add (dirtTile);
+            terrainNames.Add (stoneTile);
 
             // load game content
         }
@@ -73,54 +83,71 @@ namespace firstgame
         protected override void Update(GameTime gameTime)
         {
             double deltaTime = gameTime.ElapsedGameTime.TotalSeconds;
+
+            switch (gameState)
+            {
+                case 0:
+
+                    int randomTile;
+
+                    worldHeight = 256;
+                    worldWidth = 4096;
+
+                    playerPositionX = worldWidth / 2;
+                    playerPositionY = worldHeight / 2 - gameHeight / 64;
+
+                    for (int i = 0; i < ((worldHeight / 2 ) * worldWidth); i++)
+                    {
+                        terrain.Add(0);
+                    }
+
+                    for (int i = 0; i < (1 * worldWidth); i++)
+                    {
+                        terrain.Add(1);
+                    }
+
+                    for (int i = 0; i < (2 * worldWidth); i++)
+                    {
+                        terrain.Add(2);
+                    }
+
+                    for (int i = 0; i < (1 * worldWidth); i++)
+                    {
+                        randomTile = rnd.Next(2, 4);
+                        terrain.Add(randomTile);
+                    }
+
+                    for (int i = 0; i < ((worldHeight / 2 - 4) * worldWidth); i++)
+                    {
+                        terrain.Add(3);
+                    }
+
+                    gameState = 1;
+
+                    break;
+
+                case 1:
+
+                    break;
+
+            }
+            
             KeyboardState state = Keyboard.GetState();
 
             if (state.IsKeyDown(Keys.Escape))
                 Exit();
 
-            if (state.IsKeyDown(Keys.A))
-                playerXPhysics = -5f;
+            if (state.IsKeyDown(Keys.W))
+                playerPositionY --;
+
+            if (state.IsKeyDown(Keys.S))
+                playerPositionY ++;
+
             if (state.IsKeyDown(Keys.D))
-                playerXPhysics = 5f;
-            if (playerXPhysics != 0)
-                if (playerY > -65)
-                {
-                    playerXPhysics = playerXPhysics / 1.2f;
-                }
-                else
-                {
-                    playerXPhysics = playerXPhysics / 1.02f;
-                }
-            playerX += (int)playerXPhysics;
+                playerPositionX ++;
 
-            if (playerY > -65)
-            {
-                playerY = -64;
-                playerYPhysics = 0;
-                if (state.IsKeyDown(Keys.Space))
-                {
-                    playerYPhysics = -8;
-                    playerY -= 8;
-                }
-            }
-            else
-            {
-                playerYPhysics += 0.3f;
-                if (state.IsKeyDown(Keys.Space) == false && playerYPhysics < -4)
-                    playerYPhysics = -4;
-
-                if (playerYPhysics > 12)
-                    playerYPhysics = 12;
-                playerY += (int)(playerYPhysics);
-            }
-
-            if (cameraY < gameHeight/2 + 32)
-                cameraY = gameHeight/2 + 32;
-
-            playerCenterX = -playerX + gameWidth / 2 - 18;
-            playerCenterY = -playerY + gameHeight / 2 - 12;
-            cameraX = playerCenterX - (int)playerXPhysics;
-            cameraY = playerCenterY - (int)playerYPhysics;
+            if (state.IsKeyDown(Keys.A))
+                playerPositionX --;
 
             // game updates
 
@@ -131,20 +158,23 @@ namespace firstgame
         {
             GraphicsDevice.Clear(Color.CornflowerBlue);
             _spriteBatch.Begin(samplerState: SamplerState.PointClamp);
-            for (int x = -1; x < gameWidth/16 + 1; x++)
+            for (int xRender = -1; xRender < gameWidth/32 + 1; xRender++)
             {
-                for (int y = -1; y < gameHeight/32; y++)
+                for (int yRender = -1; yRender < gameHeight/32; yRender++)
                 {
-                    Console.WriteLine(y / 32 * 255);
-                    _spriteBatch.Draw(floorTile, new Rectangle(x * 16 + (int)(cameraX % 16), y * 16 + (int)(cameraY), floorTile.Width * 2, floorTile.Height * 2), new Color(1f -((float)y)/32f, 1f - ((float)y)/32f, 1f - ((float)y)/32f, 1));
-                };
-            }
+                    if ((xRender + playerPositionX) + (yRender + playerPositionY) * worldWidth > 1 && (xRender + playerPositionX) + (yRender + playerPositionY) * worldWidth < ( worldHeight * worldWidth) )
+                    {
+                        if (terrain[(xRender + playerPositionX) + (yRender + playerPositionY) * worldWidth] != 0)
+                        {
+                            _spriteBatch.Draw(terrainNames[terrain[(xRender + playerPositionX) + (yRender + playerPositionY) * worldWidth]], new Rectangle(xRender * 32 + (int)(cameraX % 32), yRender * 32 + (int)(cameraY), 32, 32), Color.White);
 
-            _spriteBatch.Draw(playerPlaceholder, new Rectangle(playerX + cameraX, playerY + cameraY, playerPlaceholder.Width * 2, playerPlaceholder.Height * 2), Color.White);
+                        }
+                    }
+                }
+            }
 
             _spriteBatch.End();
 
-            
             // rendering
 
             base.Draw(gameTime);
