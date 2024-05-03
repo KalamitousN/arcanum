@@ -1,4 +1,5 @@
 ﻿using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Content;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using System;
@@ -6,22 +7,23 @@ using System.Collections.Generic;
 using System.Linq.Expressions;
 using System.Runtime.CompilerServices;
 
-
 namespace firstgame
 {
     public class Game1 : Game
     {
         private GraphicsDeviceManager _graphics;
-        private SpriteBatch _spriteBatch;
-        Texture2D grassTile, dirtTile, stoneTile;
-        int gameWidth, gameHeight, cameraX, cameraY, gameState;
+        private SpriteBatch spriteBatch;
+        private Texture2D grassTile, dirtTile, stoneTile, coalTile, copperTile, ironTile;
+        public int gameWidth, gameHeight, gameState;
 
-        List<int> terrain = new List<int>();
-        List<Texture2D> terrainNames = new List<Texture2D> ();
-        Vector2 playerPositionOffset;
-        int worldWidth, worldHeight, playerPositionX, playerPositionY;
+        static List<byte> terrain = new List<byte>();
+        static List<byte> backgroundTerrain = new List<byte>();
+        public List<Texture2D> terrainNames = new List<Texture2D>();
+        public Vector2 playerPositionOffset;
+        public int worldWidth, worldHeight, cameraX, cameraY, playerPositionX, playerPositionY;
+        public const int TILE_DIMENSIONS = 32;
 
-        Random rnd = new Random();
+        public Random rnd = new Random();
 
         public Game1()
         {
@@ -66,16 +68,22 @@ namespace firstgame
 
         protected override void LoadContent()
         {
-            _spriteBatch = new SpriteBatch(GraphicsDevice);
+            spriteBatch = new SpriteBatch(GraphicsDevice);
 
             grassTile = Content.Load<Texture2D>("Sprites/grass");
             dirtTile = Content.Load<Texture2D>("Sprites/dirt");
             stoneTile = Content.Load<Texture2D>("Sprites/stone");
-            
-            terrainNames.Add (grassTile);
-            terrainNames.Add (grassTile);
-            terrainNames.Add (dirtTile);
-            terrainNames.Add (stoneTile);
+            coalTile = Content.Load<Texture2D>("Sprites/coal");
+            copperTile = Content.Load<Texture2D>("Sprites/copper");
+            ironTile = Content.Load<Texture2D>("Sprites/iron");
+
+            terrainNames.Add(grassTile);
+            terrainNames.Add(grassTile);
+            terrainNames.Add(dirtTile);
+            terrainNames.Add(stoneTile);
+            terrainNames.Add(coalTile);
+            terrainNames.Add(copperTile);
+            terrainNames.Add(ironTile);
 
             // load game content
         }
@@ -87,39 +95,73 @@ namespace firstgame
             switch (gameState)
             {
                 case 0:
+                    int generatorX, generatorY;
+                    double currentGeneratorHeight, currentGeneratorHeightPhysics;
 
-                    int randomTile;
-
-                    worldHeight = 256;
-                    worldWidth = 4096;
+                    worldHeight = 1024;
+                    worldWidth = 16384;
 
                     playerPositionX = worldWidth / 2;
                     playerPositionY = worldHeight / 2 - gameHeight / 64;
 
-                    for (int i = 0; i < ((worldHeight / 2 ) * worldWidth); i++)
+                    for (int i = 0; i < ((worldHeight / 2 + 32) * worldWidth); i++)
                     {
                         terrain.Add(0);
+                        backgroundTerrain.Add(0);
                     }
 
-                    for (int i = 0; i < (1 * worldWidth); i++)
-                    {
-                        terrain.Add(1);
-                    }
-
-                    for (int i = 0; i < (2 * worldWidth); i++)
-                    {
-                        terrain.Add(2);
-                    }
-
-                    for (int i = 0; i < (1 * worldWidth); i++)
-                    {
-                        randomTile = rnd.Next(2, 4);
-                        terrain.Add(randomTile);
-                    }
-
-                    for (int i = 0; i < ((worldHeight / 2 - 4) * worldWidth); i++)
+                    for (int i = 0; i < ((worldHeight / 2 - 32) * worldWidth); i++)
                     {
                         terrain.Add(3);
+                        backgroundTerrain.Add(3);
+                    }
+
+                    // Surface generator pre-setup, makes sure currentGeneratorHeightPhysics is zero and that the currentGeneratorHeight is set between -32 and 32
+                    currentGeneratorHeightPhysics = 0;
+                    currentGeneratorHeight = rnd.Next(0, 64) - 32;
+
+                    for (int i = 0; i < worldWidth; i++)
+                    {
+                        // Surface generator setup
+                        currentGeneratorHeightPhysics += (rnd.NextDouble() - 0.5) / 2;
+                        if (Math.Abs(currentGeneratorHeight) > 30)
+                        {
+                            currentGeneratorHeightPhysics -= currentGeneratorHeight / 48;
+                        }
+                        currentGeneratorHeightPhysics = currentGeneratorHeightPhysics / 1.1;
+                        currentGeneratorHeight += currentGeneratorHeightPhysics;
+
+                        generatorY = (int)currentGeneratorHeight + worldHeight / 2;
+                        generatorX = i;
+
+                        // Generates surface terraian, places a grass tile at the top, then dirt all the way down to somewhere between ~-64 and ~-72
+                        if (generatorX + generatorY * worldWidth > 0 && generatorX + generatorY * worldWidth < worldHeight * worldWidth)
+                        {
+                            terrain[generatorX + generatorY * worldWidth] = 1;
+                            for (int j = 0; j < rnd.Next(64, 72); j++)
+                            {
+                                generatorY += 1;
+                                terrain[generatorX + generatorY * worldWidth] = 2;
+                                backgroundTerrain[generatorX + generatorY * worldWidth] = 2;
+
+                            }
+
+                        }
+
+                    }
+
+                    for (int i = 0; i < worldHeight * worldWidth; i++)
+                    {
+                        if (terrain[i] == 3)
+                        {
+                            if (rnd.Next(0, 200) == 0)
+                            {
+                                terrain[i] = (byte)rnd.Next(4, 7);
+
+                            }
+
+                        }
+
                     }
 
                     gameState = 1;
@@ -131,49 +173,65 @@ namespace firstgame
                     break;
 
             }
-            
+
             KeyboardState state = Keyboard.GetState();
 
             if (state.IsKeyDown(Keys.Escape))
                 Exit();
 
             if (state.IsKeyDown(Keys.W))
-                playerPositionY --;
+                playerPositionY--;
 
             if (state.IsKeyDown(Keys.S))
-                playerPositionY ++;
+                playerPositionY++;
 
             if (state.IsKeyDown(Keys.D))
-                playerPositionX ++;
+                playerPositionX++;
 
             if (state.IsKeyDown(Keys.A))
-                playerPositionX --;
+                playerPositionX--;
 
             // game updates
 
             base.Update(gameTime);
         }
 
+        int WorldSize { get => worldHeight * worldWidth; }
+
         protected override void Draw(GameTime gameTime)
         {
             GraphicsDevice.Clear(Color.CornflowerBlue);
-            _spriteBatch.Begin(samplerState: SamplerState.PointClamp);
-            for (int xRender = -1; xRender < gameWidth/32 + 1; xRender++)
+            spriteBatch.Begin(samplerState: SamplerState.PointClamp);
+            for (int xRender = -1; xRender < gameWidth/TILE_DIMENSIONS + 1; xRender++)
             {
-                for (int yRender = -1; yRender < gameHeight/32; yRender++)
+                for (int yRender = -1; yRender < gameHeight/TILE_DIMENSIONS; yRender++)
                 {
-                    if ((xRender + playerPositionX) + (yRender + playerPositionY) * worldWidth > 1 && (xRender + playerPositionX) + (yRender + playerPositionY) * worldWidth < ( worldHeight * worldWidth) )
+                    int getTerrainByPosition() => (xRender + playerPositionX) + (yRender + playerPositionY) * worldWidth;
+
+                    if (getTerrainByPosition() > 1 && getTerrainByPosition() < ( WorldSize) )
                     {
-                        if (terrain[(xRender + playerPositionX) + (yRender + playerPositionY) * worldWidth] != 0)
+                        if (terrain[getTerrainByPosition()] != 0)
                         {
-                            _spriteBatch.Draw(terrainNames[terrain[(xRender + playerPositionX) + (yRender + playerPositionY) * worldWidth]], new Rectangle(xRender * 32 + (int)(cameraX % 32), yRender * 32 + (int)(cameraY), 32, 32), Color.White);
+                            spriteBatch.Draw(terrainNames[terrain[getTerrainByPosition()]], new Rectangle(xRender * TILE_DIMENSIONS + (int)(cameraX % TILE_DIMENSIONS), yRender * TILE_DIMENSIONS + (int)(cameraY), TILE_DIMENSIONS, TILE_DIMENSIONS), Color.White);
 
                         }
+                        else
+                        {
+                            if (backgroundTerrain[getTerrainByPosition()] != 0)
+                            {
+                                spriteBatch.Draw(terrainNames[backgroundTerrain[getTerrainByPosition()]], new Rectangle(xRender * TILE_DIMENSIONS + (int)(cameraX % TILE_DIMENSIONS), yRender * TILE_DIMENSIONS + (int)(cameraY), TILE_DIMENSIONS, TILE_DIMENSIONS), Color.Gray);
+
+                            }
+
+                        }
+
                     }
+
                 }
+
             }
 
-            _spriteBatch.End();
+            spriteBatch.End();
 
             // rendering
 
