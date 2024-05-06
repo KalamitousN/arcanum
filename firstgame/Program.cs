@@ -1,3 +1,3 @@
 ﻿
-using var game = new firstgame.Game1();
+using var game = new arcanum.Game1();
 game.Run();
