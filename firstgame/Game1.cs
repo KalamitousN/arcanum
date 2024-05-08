@@ -16,17 +16,15 @@ namespace arcanum
         private SpriteBatch spriteBatch;
         private Texture2D grassTile, dirtTile, stoneTile, coalTile, copperTile, ironTile;
         public int gameWidth, gameHeight, gameState;
+        public int cameraX, cameraY, playerPositionX, playerPositionY;
 
-        static List<byte> terrain = new List<byte>();
-        static List<byte> backgroundTerrain = new List<byte>();
-        static List<float> screenLight = new List<float>();
-        public List<Texture2D> terrainNames = new List<Texture2D>();
+        List<float> screenLight = new();
+
+        public List<Texture2D> terrainNames = new();
         public Vector2 playerPositionOffset;
-        public int worldWidth, worldHeight, cameraX, cameraY, playerPositionX, playerPositionY;
-        public int worldSize { get => worldHeight * worldWidth; }
-        public const int TILE_DIMENSIONS = 32;
 
-        public Random rnd = new Random();
+        public Random rnd = new();
+        readonly TerrainGenerator terrain = new();
 
         public Game1()
         {
@@ -66,10 +64,10 @@ namespace arcanum
             gameWidth = GraphicsDevice.PresentationParameters.BackBufferWidth;
             gameHeight = GraphicsDevice.PresentationParameters.BackBufferHeight;
 
-            for (int i = -1; i < gameWidth / TILE_DIMENSIONS + 1; i++)
+            for (int i = -1; i < gameWidth / terrain.TILE_DIMENSIONS + 1; i++)
             {
-                for (int j = -1; j < gameHeight / TILE_DIMENSIONS + 1; j++)
-                    screenLight.Add(0);
+                for (int j = -1; j < gameHeight / terrain.TILE_DIMENSIONS + 1; j++)
+                    screenLight.Add(0f);
 
             }
 
@@ -105,213 +103,10 @@ namespace arcanum
             switch (gameState)
             {
                 case 0:
-                    int generatorX, generatorY;
-                    double currentGeneratorHeight, currentGeneratorHeightPhysics;
+                    terrain.Generate();
 
-                    worldHeight = 1024;
-                    worldWidth = 16384;
-
-                    cameraX = worldWidth * 16;
-                    cameraY = worldHeight * 16;
-
-                    for (int i = 0; i < ((worldHeight / 2 + 32) * worldWidth); i++)
-                    {
-                        terrain.Add(0);
-                        backgroundTerrain.Add(0);
-                    }
-
-                    for (int i = 0; i < ((worldHeight / 2 - 32) * worldWidth); i++)
-                    {
-                        terrain.Add(3);
-                        backgroundTerrain.Add(3);
-                    }
-
-                    // Surface generator pre-setup, makes sure currentGeneratorHeightPhysics is zero and that the currentGeneratorHeight is set between -32 and 32
-                    currentGeneratorHeightPhysics = 0;
-                    currentGeneratorHeight = rnd.Next(0, 64) - 32;
-
-                    for (int i = 0; i < worldWidth; i++)
-                    {
-                        // Surface generator setup
-                        currentGeneratorHeightPhysics += (rnd.NextDouble() - 0.5) / 2;
-                        if (Math.Abs(currentGeneratorHeight) > 30)
-                        {
-                            currentGeneratorHeightPhysics -= currentGeneratorHeight / 48;
-                        }
-                        currentGeneratorHeightPhysics = currentGeneratorHeightPhysics / 1.1;
-                        currentGeneratorHeight += currentGeneratorHeightPhysics;
-
-                        generatorY = (int)currentGeneratorHeight + worldHeight / 2;
-                        generatorX = i;
-
-                        // Generates surface terraian, places a grass tile at the top, then dirt all the way down to somewhere between ~-64 and ~-72
-                        if (generatorX + generatorY * worldWidth > 0 && generatorX + generatorY * worldWidth < worldHeight * worldWidth)
-                        {
-                            terrain[generatorX + generatorY * worldWidth] = 1;
-                            for (int j = 0; j < rnd.Next(64, 96); j++)
-                            {
-                                generatorY += 1;
-                                terrain[generatorX + generatorY * worldWidth] = 2;
-                                backgroundTerrain[generatorX + generatorY * worldWidth] = 2;
-
-                            }
-
-                        }
-
-                    }
-
-                    // Surface stone generator, looks for dirt and well, generates stone!
-                    for (int i = 0; i < worldWidth; i++)
-                    {
-                        for (int j = 0; j < worldHeight; j++)
-                        {
-                            if (terrain[i + j * worldWidth] == 2)
-                            {
-                                if (rnd.Next(0, 10000) == 0)
-                                {
-                                    byte replaceTile = 3;
-
-                                    for (int k = 0; k < rnd.Next(128, 192); k++)
-                                    {
-                                        generatorX = 0;
-                                        generatorY = 0;
-
-                                        for (int l = 0; l < rnd.Next(24, 32); l++)
-                                        {
-                                            generatorX += rnd.Next(-1, 2);
-                                            generatorY += rnd.Next(-6, 7);
-                                            if (0 < i + generatorX && i + generatorX < worldWidth && 0 < j + generatorY && j + generatorY < worldHeight)
-                                            {
-                                                if (terrain[i + generatorX + (j + generatorY) * worldWidth] != 0)
-                                                    terrain[i + generatorX + (j + generatorY) * worldWidth] = replaceTile;
-
-                                            }
-
-                                        }
-
-                                    }
-
-                                }
-
-                            }
-
-                        }
-
-                    }
-
-                    // Dirt Ore generator, Generates Coal (tile 5) and Copper (tile 6) in small pockets
-                    for (int i = 0; i < worldWidth; i++)
-                    {
-                        for (int j = 0; j < worldHeight; j++)
-                        {
-                            if (terrain[i + j * worldWidth] == 2)
-                            {
-                                if (rnd.Next(0, 400) == 0)
-                                {
-                                    byte replaceTile = (byte)rnd.Next(4, 6);
-
-                                    for (int k = 0; k < rnd.Next(4, 6); k++)
-                                    {
-                                        generatorX = 0;
-                                        generatorY = 0;
-
-                                        for (int l = 0; l < rnd.Next(3, 4); l++)
-                                        {
-                                            generatorX += rnd.Next(-1, 2);
-                                            generatorY += rnd.Next(-1, 2);
-                                            if (0 < i + generatorX && i + generatorX < worldWidth && 0 < j + generatorY && j + generatorY < worldHeight)
-                                            {
-                                                terrain[i + generatorX + (j + generatorY) * worldWidth] = replaceTile;
-
-                                            }
-
-                                        }
-
-                                    }
-
-                                }
-
-                            }
-
-                        }
-
-                    }
-
-                    // Stone Ore generator, Generates Coal (tile 5) Copper (tile 6) and Iron (tile 7)
-                    for (int i = 0; i < worldWidth; i++)
-                    {
-                        for (int j = 0; j < worldHeight; j++)
-                        {
-                            if (terrain[i + j * worldWidth] == 3)
-                            {
-                                if (rnd.Next(0, 200) == 0)
-                                {
-                                    byte replaceTile = (byte)rnd.Next(4, 7);
-
-                                    for (int  k = 0; k < rnd.Next(6, 8); k++)
-                                    {
-                                        generatorX = 0;
-                                        generatorY = 0;
-
-                                        for (int l = 0; l < rnd.Next(3, 8); l++)
-                                        {
-                                            generatorX += rnd.Next(-1, 2);
-                                            generatorY += rnd.Next(-1, 2);
-                                            if (0 < i + generatorX && i + generatorX < worldWidth && 0 < j + generatorY && j + generatorY < worldHeight)
-                                            {
-                                                terrain[i + generatorX + (j + generatorY) * worldWidth] = replaceTile;
-
-                                            }
-
-                                        }
-
-                                    }
-
-                                }
-
-                            }
-
-                        }
-
-                    }
-
-                    // Cave generator, generates caves!
-                    for (int i = 0; i < worldWidth; i++)
-                    {
-                        for (int j = 0; j < worldHeight; j++)
-                        {
-                            if (terrain[i + j * worldWidth] == 3)
-                            {
-                                if (rnd.Next(0, 800) == 0)
-                                {
-                                    byte replaceTile = 0;
-
-                                    for (int k = 0; k < rnd.Next(48, 64); k++)
-                                    {
-                                        generatorX = 0;
-                                        generatorY = 0;
-
-                                        for (int l = 0; l < rnd.Next(16, 32); l++)
-                                        {
-                                            generatorX += rnd.Next(-1, 2);
-                                            generatorY += rnd.Next(-1, 2);
-                                            if (0 < i + generatorX && i + generatorX < worldWidth && 0 < j + generatorY && j + generatorY < worldHeight)
-                                            {
-                                                terrain[i + generatorX + (j + generatorY) * worldWidth] = replaceTile;
-
-                                            }
-
-                                        }
-
-                                    }
-
-                                }
-
-                            }
-
-                        }
-
-                    }
+                    cameraX = terrain.worldWidth * 16;
+                    cameraY = terrain.worldHeight * 16;
 
                     gameState = 1;
 
@@ -340,23 +135,24 @@ namespace arcanum
             if (state.IsKeyDown(Keys.A))
                 cameraX -= 4;
 
-            for (int i = -1; i < gameWidth / TILE_DIMENSIONS + 1; i++)
+            // Sets all the light to its default state
+            for (int i = 0; i < gameWidth / terrain.TILE_DIMENSIONS + 2; i++)
             {
-                for (int j = -1; j < gameHeight / TILE_DIMENSIONS + 1; j++)
+                for (int j = 0; j < gameHeight / terrain.TILE_DIMENSIONS + 2; j++)
                 {
-                    if (terrain[(i + (int)(cameraX / TILE_DIMENSIONS) + ( j + (int)(cameraY / TILE_DIMENSIONS) ) * gameWidth / TILE_DIMENSIONS)] != 0)
+                    if (terrain.Terrain[(i + (int)(cameraX / terrain.TILE_DIMENSIONS) + ( j + (int)(cameraY / terrain.TILE_DIMENSIONS) ) * gameWidth / terrain.TILE_DIMENSIONS)] == 0)
                     {
-                        if (i < gameWidth / TILE_DIMENSIONS && j < gameHeight / TILE_DIMENSIONS)
+                        if (i < gameWidth / terrain.TILE_DIMENSIONS && j < gameHeight / terrain.TILE_DIMENSIONS)
                         {
-                            screenLight[i + j * gameWidth / TILE_DIMENSIONS] = 1;
+                            screenLight[i + j * gameWidth / terrain.TILE_DIMENSIONS] = 0f;
                         }
 
                     }
                     else
                     {
-                        if (i < gameWidth / TILE_DIMENSIONS && j < gameHeight / TILE_DIMENSIONS)
+                        if (i < gameWidth / terrain.TILE_DIMENSIONS && j < gameHeight / terrain.TILE_DIMENSIONS)
                         {
-                            screenLight[i + j * gameWidth / TILE_DIMENSIONS] = 0;
+                            screenLight[i + j * gameWidth / terrain.TILE_DIMENSIONS] = 0f;
                         }
 
                     }
@@ -374,24 +170,33 @@ namespace arcanum
         {
             GraphicsDevice.Clear(Color.CornflowerBlue);
             spriteBatch.Begin(samplerState: SamplerState.PointClamp);
-            for (int xRender = -1; xRender < gameWidth/TILE_DIMENSIONS + 1; xRender++)
+            for (int xRender = -1; xRender < gameWidth/terrain.TILE_DIMENSIONS + 1; xRender++)
             {
-                for (int yRender = -1; yRender < gameHeight/TILE_DIMENSIONS + 1; yRender++)
+                for (int yRender = -1; yRender < gameHeight/terrain.TILE_DIMENSIONS + 1; yRender++)
                 {
-                    int getTerrainByPosition() => (xRender + Convert.ToInt32(Math.Floor(Convert.ToDouble(cameraX / TILE_DIMENSIONS)))) + (yRender + Convert.ToInt32(Math.Floor(Convert.ToDouble(cameraY / TILE_DIMENSIONS)))) * worldWidth;
-
-                    if (getTerrainByPosition() > 1 && getTerrainByPosition() < ( worldSize) )
+                    int getTerrainByPosition() 
                     {
-                        if (terrain[getTerrainByPosition()] != 0)
+                        return xRender + cameraX / terrain.TILE_DIMENSIONS + (yRender + cameraY / terrain.TILE_DIMENSIONS) * terrain.worldWidth;
+                    }
+
+                    float getLightByPosition()
+                    {
+                        return screenLight[xRender + 1 + ( yRender + 1) * (gameWidth / terrain.TILE_DIMENSIONS)];
+                    }
+
+
+                    if (getTerrainByPosition() > 1 && getTerrainByPosition() < (terrain.worldSize) )
+                    {
+                        if (terrain.Terrain[getTerrainByPosition()] != 0)
                         {
-                            spriteBatch.Draw(terrainNames[terrain[getTerrainByPosition()]], new Rectangle(xRender * TILE_DIMENSIONS + (int)(-cameraX % TILE_DIMENSIONS), yRender * TILE_DIMENSIONS + (int)(-cameraY % TILE_DIMENSIONS), TILE_DIMENSIONS, TILE_DIMENSIONS), new Color(0,0,0));
+                            spriteBatch.Draw(terrainNames[terrain.Terrain[getTerrainByPosition()]], new Rectangle(xRender * terrain.TILE_DIMENSIONS + (int)(-cameraX % terrain.TILE_DIMENSIONS), yRender * terrain.TILE_DIMENSIONS + (int)(-cameraY % terrain.TILE_DIMENSIONS), terrain.TILE_DIMENSIONS, terrain.TILE_DIMENSIONS), new Color( getLightByPosition() * 255, getLightByPosition() * 255, getLightByPosition() * 255));
 
                         }
                         else
                         {
-                            if (backgroundTerrain[getTerrainByPosition()] != 0)
+                            if (terrain.BackgroundTerrain[getTerrainByPosition()] != 0)
                             {
-                                spriteBatch.Draw(terrainNames[backgroundTerrain[getTerrainByPosition()]], new Rectangle(xRender * TILE_DIMENSIONS + (int)(-cameraX % TILE_DIMENSIONS), yRender * TILE_DIMENSIONS + (int)(-cameraY % TILE_DIMENSIONS), TILE_DIMENSIONS, TILE_DIMENSIONS), new Color(0, 0, 0));
+                                spriteBatch.Draw(terrainNames[terrain.BackgroundTerrain[getTerrainByPosition()]], new Rectangle(xRender * terrain.TILE_DIMENSIONS + (int)(-cameraX % terrain.TILE_DIMENSIONS), yRender * terrain.TILE_DIMENSIONS + (int)(-cameraY % terrain.TILE_DIMENSIONS), terrain.TILE_DIMENSIONS, terrain.TILE_DIMENSIONS), new Color( getLightByPosition() * 128, getLightByPosition() * 128, getLightByPosition() * 128));
 
                             }
 
