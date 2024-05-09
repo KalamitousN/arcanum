@@ -137,93 +137,92 @@ namespace arcanum
 
                 case 1:
 
+                    KeyboardState state = Keyboard.GetState();
+
+                    if (state.IsKeyDown(Keys.Escape))
+                        Exit();
+
+                    if (state.IsKeyDown(Keys.W))
+                        cameraY -= 64;
+
+                    if (state.IsKeyDown(Keys.S))
+                        cameraY += 64;
+
+                    if (state.IsKeyDown(Keys.D))
+                        cameraX += 64;
+
+                    if (state.IsKeyDown(Keys.A))
+                        cameraX -= 64;
+
+                    // Runs all entity logic
+                    entities.EntityLogic();
+
+                    // Sets light to its default state, with air always "glowing"
+                    for (int x = 0; x < gameWidth / terrain.TILE_DIMENSIONS; x++)
+                    {
+                        for (int y = 0; y < gameHeight / terrain.TILE_DIMENSIONS; y++)
+                        {
+                            if (x + y * terrain.worldWidth + cameraX / terrain.TILE_DIMENSIONS + cameraY / terrain.TILE_DIMENSIONS * terrain.worldWidth > 0 && x + y * terrain.worldWidth + cameraX / terrain.TILE_DIMENSIONS + cameraY / terrain.TILE_DIMENSIONS * terrain.worldWidth < terrain.worldWidth * terrain.worldHeight)
+                            {
+                                if (terrain.Terrain[x + y * terrain.worldWidth + cameraX / terrain.TILE_DIMENSIONS + cameraY / terrain.TILE_DIMENSIONS * terrain.worldWidth] == 0)
+                                {
+                                    screenLight[x + y * (gameWidth / terrain.TILE_DIMENSIONS)] = 255;
+
+                                }
+                                else
+                                {
+                                    screenLight[x + y * (gameWidth / terrain.TILE_DIMENSIONS)] = 0;
+
+                                }
+
+                            }
+
+                        }
+
+                    }
+
+                    // Screen light calculations!
+                    for (int i = 0; i < 5; i++)
+                    {
+                        for (int x = 1; x < gameWidth / terrain.TILE_DIMENSIONS - 1; x++)
+                        {
+                            for (int y = 1; y < gameHeight / terrain.TILE_DIMENSIONS - 1; y++)
+                            {
+                                if (screenLight[x + y * (gameWidth / terrain.TILE_DIMENSIONS)] != 255)
+                                {
+                                    if (screenLight[x + y * (gameWidth / terrain.TILE_DIMENSIONS)] < screenLight[x + 1 + y * (gameWidth / terrain.TILE_DIMENSIONS)])
+                                    {
+                                        screenLight[x + y * (gameWidth / terrain.TILE_DIMENSIONS)] = screenLight[x + 1 + y * (gameWidth / terrain.TILE_DIMENSIONS)] - 51;
+
+                                    }
+
+                                    if (screenLight[x + y * (gameWidth / terrain.TILE_DIMENSIONS)] < screenLight[x - 1 + y * (gameWidth / terrain.TILE_DIMENSIONS)])
+                                    {
+                                        screenLight[x + y * (gameWidth / terrain.TILE_DIMENSIONS)] = screenLight[x - 1 + y * (gameWidth / terrain.TILE_DIMENSIONS)] - 51;
+
+                                    }
+
+                                    if (screenLight[x + y * (gameWidth / terrain.TILE_DIMENSIONS)] < screenLight[x + (y + 1) * (gameWidth / terrain.TILE_DIMENSIONS)])
+                                    {
+                                        screenLight[x + y * (gameWidth / terrain.TILE_DIMENSIONS)] = screenLight[x + (y + 1) * (gameWidth / terrain.TILE_DIMENSIONS)] - 51;
+
+                                    }
+
+                                    if (screenLight[x + y * (gameWidth / terrain.TILE_DIMENSIONS)] < screenLight[x + (y - 1) * (gameWidth / terrain.TILE_DIMENSIONS)])
+                                    {
+                                        screenLight[x + y * (gameWidth / terrain.TILE_DIMENSIONS)] = screenLight[x + (y - 1) * (gameWidth / terrain.TILE_DIMENSIONS)] - 51;
+
+                                    }
+
+                                }
+
+                            }
+
+                        }
+
+                    }
+
                     break;
-
-            }
-
-            KeyboardState state = Keyboard.GetState();
-
-            if (state.IsKeyDown(Keys.Escape))
-                Exit();
-
-            if (state.IsKeyDown(Keys.W))
-                cameraY -= 64;
-
-            if (state.IsKeyDown(Keys.S))
-                cameraY += 64;
-
-            if (state.IsKeyDown(Keys.D))
-                cameraX += 64;
-
-            if (state.IsKeyDown(Keys.A))
-                cameraX -= 64;
-
-            // Runs all entity logic
-            entities.EntityLogic();
-
-
-            // Sets light to its default state, with air always "glowing"
-            for (int x = 0; x < gameWidth / terrain.TILE_DIMENSIONS; x++)
-            {
-                for (int y = 0; y < gameHeight / terrain.TILE_DIMENSIONS; y++)
-                {
-                    if (x + y * terrain.worldWidth + cameraX / terrain.TILE_DIMENSIONS + cameraY / terrain.TILE_DIMENSIONS * terrain.worldWidth > 0 && x + y * terrain.worldWidth + cameraX / terrain.TILE_DIMENSIONS + cameraY / terrain.TILE_DIMENSIONS * terrain.worldWidth < terrain.worldWidth * terrain.worldHeight)
-                    {
-                        if (terrain.Terrain[x + y * terrain.worldWidth + cameraX / terrain.TILE_DIMENSIONS + cameraY / terrain.TILE_DIMENSIONS * terrain.worldWidth] == 0)
-                        {
-                            screenLight[x + y * (gameWidth / terrain.TILE_DIMENSIONS)] = 255;
-
-                        }
-                        else
-                        {
-                            screenLight[x + y * (gameWidth / terrain.TILE_DIMENSIONS)] = 0;
-
-                        }
-
-                    }
-
-                }
-
-            }
-
-            // Screen light calculations!
-            for (int i = 0; i < 5; i++)
-            {
-                for (int x = 1; x < gameWidth / terrain.TILE_DIMENSIONS - 1; x++)
-                {
-                    for (int y = 1; y < gameHeight / terrain.TILE_DIMENSIONS - 1; y++)
-                    {
-                        if (screenLight[x + y * (gameWidth / terrain.TILE_DIMENSIONS)] != 255)
-                        {
-                            if (screenLight[x + y * (gameWidth / terrain.TILE_DIMENSIONS)] < screenLight[x + 1 + y * (gameWidth / terrain.TILE_DIMENSIONS)])
-                            {
-                                screenLight[x + y * (gameWidth / terrain.TILE_DIMENSIONS)] = screenLight[x + 1 + y * (gameWidth / terrain.TILE_DIMENSIONS)] - 51;
-
-                            }
-
-                            if (screenLight[x + y * (gameWidth / terrain.TILE_DIMENSIONS)] < screenLight[x - 1 + y * (gameWidth / terrain.TILE_DIMENSIONS)])
-                            {
-                                screenLight[x + y * (gameWidth / terrain.TILE_DIMENSIONS)] = screenLight[x - 1 + y * (gameWidth / terrain.TILE_DIMENSIONS)] - 51;
-
-                            }
-
-                            if (screenLight[x + y * (gameWidth / terrain.TILE_DIMENSIONS)] < screenLight[x + (y + 1) * (gameWidth / terrain.TILE_DIMENSIONS)])
-                            {
-                                screenLight[x + y * (gameWidth / terrain.TILE_DIMENSIONS)] = screenLight[x + (y + 1) * (gameWidth / terrain.TILE_DIMENSIONS)] - 51;
-
-                            }
-
-                            if (screenLight[x + y * (gameWidth / terrain.TILE_DIMENSIONS)] < screenLight[x + (y - 1) * (gameWidth / terrain.TILE_DIMENSIONS)])
-                            {
-                                screenLight[x + y * (gameWidth / terrain.TILE_DIMENSIONS)] = screenLight[x + (y - 1) * (gameWidth / terrain.TILE_DIMENSIONS)] - 51;
-
-                            }
-
-                        }
-
-                    }
-
-                }
 
             }
 
@@ -248,7 +247,6 @@ namespace arcanum
                         return screenLight[xRender + ( yRender * ( gameWidth / terrain.TILE_DIMENSIONS))];
                     }
 
-
                     if (getTerrainByPosition() > 1 && getTerrainByPosition() < (terrain.worldSize) )
                     {
                         if (terrain.Terrain[getTerrainByPosition()] != 0)
@@ -271,8 +269,9 @@ namespace arcanum
                 }
 
             }
+            Vector2 currentRenderPosition = entities.entityPosition[0];
 
-            spriteBatch.Draw(rightStand, new Rectangle(0 - cameraX, 0 - cameraY, 4 * 20, 4 * 24), Color.White);
+            spriteBatch.Draw(rightStand, new Rectangle( (int) currentRenderPosition.X - cameraX, (int)currentRenderPosition.Y - cameraY, 4 * 20, 4 * 24), Color.White);
 
             spriteBatch.End();
 
