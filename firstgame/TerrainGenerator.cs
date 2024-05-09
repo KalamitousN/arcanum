@@ -4,7 +4,8 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace arcanum;
+namespace arcanum
+{
     public class TerrainGenerator
     {
         public int worldWidth, worldHeight;
@@ -75,11 +76,11 @@ namespace arcanum;
             }
 
             // Surface stone generator, looks for dirt and well, generates stone!
-            for (int i = 0; i < worldWidth; i++)
+            for (int x = 0; x < worldWidth; x++)
             {
-                for (int j = 0; j < worldHeight; j++)
+                for (int y = 0; y < worldHeight; y++)
                 {
-                    if (Terrain[i + j * worldWidth] == 2)
+                    if (Terrain[x + y * worldWidth] == 2)
                     {
                         if (rnd.Next(0, 10000) == 0)
                         {
@@ -94,10 +95,10 @@ namespace arcanum;
                                 {
                                     generatorX += rnd.Next(-1, 2);
                                     generatorY += rnd.Next(-6, 7);
-                                    if (0 < i + generatorX && i + generatorX < worldWidth && 0 < j + generatorY && j + generatorY < worldHeight)
+                                    if (0 < x + generatorX && x + generatorX < worldWidth && 0 < y + generatorY && y + generatorY < worldHeight)
                                     {
-                                        if (Terrain[i + generatorX + (j + generatorY) * worldWidth] != 0)
-                                            Terrain[i + generatorX + (j + generatorY) * worldWidth] = replaceTile;
+                                        if (Terrain[x + generatorX + (y + generatorY) * worldWidth] != 0)
+                                            Terrain[x + generatorX + (y + generatorY) * worldWidth] = replaceTile;
 
                                     }
 
@@ -114,11 +115,11 @@ namespace arcanum;
             }
 
             // Dirt Ore generator, Generates Coal (tile 5) and Copper (tile 6) in small pockets
-            for (int i = 0; i < worldWidth; i++)
+            for (int x = 0; x < worldWidth; x++)
             {
-                for (int j = 0; j < worldHeight; j++)
+                for (int y = 0; y < worldHeight; y++)
                 {
-                    if (Terrain[i + j * worldWidth] == 2)
+                    if (Terrain[x + y * worldWidth] == 2)
                     {
                         if (rnd.Next(0, 400) == 0)
                         {
@@ -133,9 +134,9 @@ namespace arcanum;
                                 {
                                     generatorX += rnd.Next(-1, 2);
                                     generatorY += rnd.Next(-1, 2);
-                                    if (0 < i + generatorX && i + generatorX < worldWidth && 0 < j + generatorY && j + generatorY < worldHeight)
+                                    if (0 < x + generatorX && x + generatorX < worldWidth && 0 < y + generatorY && y + generatorY < worldHeight)
                                     {
-                                        Terrain[i + generatorX + (j + generatorY) * worldWidth] = replaceTile;
+                                        Terrain[x + generatorX + (y + generatorY) * worldWidth] = replaceTile;
 
                                     }
 
@@ -152,11 +153,11 @@ namespace arcanum;
             }
 
             // Stone Ore generator, Generates Coal (tile 5) Copper (tile 6) and Iron (tile 7)
-            for (int i = 0; i < worldWidth; i++)
+            for (int x = 0; x < worldWidth; x++)
             {
-                for (int j = 0; j < worldHeight; j++)
+                for (int y = 0; y < worldHeight; y++)
                 {
-                    if (Terrain[i + j * worldWidth] == 3)
+                    if (Terrain[x + y * worldWidth] == 3)
                     {
                         if (rnd.Next(0, 200) == 0)
                         {
@@ -171,9 +172,9 @@ namespace arcanum;
                                 {
                                     generatorX += rnd.Next(-1, 2);
                                     generatorY += rnd.Next(-1, 2);
-                                    if (0 < i + generatorX && i + generatorX < worldWidth && 0 < j + generatorY && j + generatorY < worldHeight)
+                                    if (0 < x + generatorX && x + generatorX < worldWidth && 0 < y + generatorY && y + generatorY < worldHeight)
                                     {
-                                        Terrain[i + generatorX + (j + generatorY) * worldWidth] = replaceTile;
+                                        Terrain[x + generatorX + (y + generatorY) * worldWidth] = replaceTile;
 
                                     }
 
@@ -190,11 +191,11 @@ namespace arcanum;
             }
 
             // Cave generator, generates caves!
-            for (int i = 0; i < worldWidth; i++)
+            for (int x = 0; x < worldWidth; x++)
             {
-                for (int j = 0; j < worldHeight; j++)
+                for (int y = 0; y < worldHeight; y++)
                 {
-                    if (Terrain[i + j * worldWidth] == 3)
+                    if (Terrain[x + y * worldWidth] == 3)
                     {
                         if (rnd.Next(0, 800) == 0)
                         {
@@ -209,9 +210,9 @@ namespace arcanum;
                                 {
                                     generatorX += rnd.Next(-1, 2);
                                     generatorY += rnd.Next(-1, 2);
-                                    if (0 < i + generatorX && i + generatorX < worldWidth && 0 < j + generatorY && j + generatorY < worldHeight)
+                                    if (0 < x + generatorX && x + generatorX < worldWidth && 0 < y + generatorY && y + generatorY < worldHeight)
                                     {
-                                        Terrain[i + generatorX + (j + generatorY) * worldWidth] = replaceTile;
+                                        Terrain[x + generatorX + (y + generatorY) * worldWidth] = replaceTile;
 
                                     }
 
@@ -226,7 +227,53 @@ namespace arcanum;
                 }
 
             }
+
+            // World Smoother. SMOOTHENS EVERYTHING!! (Removes a tile which doesn't have more than 3 tile adjacent to it)
+            for (int i = 0; i < 3; i++)
+            {
+                for (int x = 1; x < worldWidth - 1; x++)
+                {
+                    for (int y = 1; y < worldHeight - 1; y++)
+                    {
+                        if (Terrain[x + y * worldWidth] != 0)
+                        {
+                            byte replaceTile = 0;
+
+                            generatorX = 0;
+                            generatorY = 0;
+
+                            int removalCounter = 0;
+
+                            for (int x2 = -1; x2 < 2; x2++)
+                            {
+                                for (int y2 = -1; y2 < 2; y2++)
+                                {
+                                    if (Terrain[x + x2 + (y + y2) * worldWidth] != 0)
+                                    {
+                                        removalCounter++;
+
+                                    }
+
+                                }
+
+                            }
+
+                            if (removalCounter < 4)
+                            {
+                                Terrain[x + y * worldWidth] = 0;
+
+                            }
+
+                        }
+
+                    }
+
+                }
+
+            }
+
         }
-       
 
     }
+
+}

@@ -5,6 +5,7 @@ using Microsoft.Xna.Framework.Input;
 using System;
 using System.Collections.Generic;
 using System.Linq.Expressions;
+using System.Reflection.Metadata;
 using System.Runtime.CompilerServices;
 using System.Text.Json.Serialization;
 
@@ -14,17 +15,18 @@ namespace arcanum
     {
         private GraphicsDeviceManager _graphics;
         private SpriteBatch spriteBatch;
-        private Texture2D grassTile, dirtTile, stoneTile, coalTile, copperTile, ironTile;
+        private Texture2D grassTile, dirtTile, stoneTile, coalTile, copperTile, ironTile, leftArmForward, leftArmStand, leftArmUp, leftArmWalkBackward, leftArmWalkForward, leftStand, leftWalk, rightArmForward, rightArmStand, rightArmUp, rightArmWalkBackward, rightArmWalkForward, rightStand, rightWalk;
         public int gameWidth, gameHeight, gameState;
         public int cameraX, cameraY, playerPositionX, playerPositionY;
 
-        List<float> screenLight = new();
+        List<int> screenLight = new();
 
         public List<Texture2D> terrainNames = new();
         public Vector2 playerPositionOffset;
 
         public Random rnd = new();
         readonly TerrainGenerator terrain = new();
+        readonly Entities entities = new();
 
         public Game1()
         {
@@ -64,10 +66,10 @@ namespace arcanum
             gameWidth = GraphicsDevice.PresentationParameters.BackBufferWidth;
             gameHeight = GraphicsDevice.PresentationParameters.BackBufferHeight;
 
-            for (int i = -1; i < gameWidth / terrain.TILE_DIMENSIONS + 1; i++)
+            for (int x = 0; x < gameWidth / terrain.TILE_DIMENSIONS + 1; x++)
             {
-                for (int j = -1; j < gameHeight / terrain.TILE_DIMENSIONS + 1; j++)
-                    screenLight.Add(0f);
+                for (int y = 0; y < gameHeight / terrain.TILE_DIMENSIONS + 2; y++)
+                    screenLight.Add( (int) rnd.NextDouble() * 255);
 
             }
 
@@ -78,13 +80,33 @@ namespace arcanum
         {
             spriteBatch = new SpriteBatch(GraphicsDevice);
 
+
+            // Tile Sprites
             grassTile = Content.Load<Texture2D>("Sprites/grass");
             dirtTile = Content.Load<Texture2D>("Sprites/dirt");
             stoneTile = Content.Load<Texture2D>("Sprites/stone");
             coalTile = Content.Load<Texture2D>("Sprites/coal");
             copperTile = Content.Load<Texture2D>("Sprites/copper");
             ironTile = Content.Load<Texture2D>("Sprites/iron");
+            
+            // Player Sprites
+            leftArmForward = Content.Load<Texture2D>("Sprites/Player/leftArmForward");
+            leftArmStand = Content.Load<Texture2D>("Sprites/Player/leftArmStand");
+            leftArmUp = Content.Load<Texture2D>("Sprites/Player/leftArmUp");
+            leftArmWalkBackward = Content.Load<Texture2D>("Sprites/Player/leftArmWalkBackward");
+            leftArmWalkForward = Content.Load<Texture2D>("Sprites/Player/leftArmWalkForward");
+            leftStand = Content.Load<Texture2D>("Sprites/Player/leftStand");
+            leftWalk = Content.Load<Texture2D>("Sprites/Player/leftWalk");
 
+            rightArmForward = Content.Load<Texture2D>("Sprites/Player/rightArmForward");
+            rightArmStand = Content.Load<Texture2D>("Sprites/Player/rightArmStand");
+            rightArmUp = Content.Load<Texture2D>("Sprites/Player/rightArmUp");
+            rightArmWalkBackward = Content.Load<Texture2D>("Sprites/Player/rightArmWalkBackward");
+            rightArmWalkForward = Content.Load<Texture2D>("Sprites/Player/rightArmWalkForward");
+            rightStand = Content.Load<Texture2D>("Sprites/Player/rightStand");
+            rightWalk = Content.Load<Texture2D>("Sprites/Player/rightWalk");
+
+            // Load tile-textures into terrainNames for rendering
             terrainNames.Add(grassTile);
             terrainNames.Add(grassTile);
             terrainNames.Add(dirtTile);
@@ -103,6 +125,7 @@ namespace arcanum
             switch (gameState)
             {
                 case 0:
+
                     terrain.Generate();
 
                     cameraX = terrain.worldWidth * 16;
@@ -124,79 +147,75 @@ namespace arcanum
                 Exit();
 
             if (state.IsKeyDown(Keys.W))
-                cameraY -= 4;
+                cameraY -= 64;
 
             if (state.IsKeyDown(Keys.S))
-                cameraY += 4;
+                cameraY += 64;
 
             if (state.IsKeyDown(Keys.D))
-                cameraX += 4;
+                cameraX += 64;
 
             if (state.IsKeyDown(Keys.A))
-                cameraX -= 4;
+                cameraX -= 64;
 
-            // Sets all the light to its default state
-            for (int i = 0; i < gameWidth / terrain.TILE_DIMENSIONS + 2; i++)
+            // Runs all entity logic
+            entities.EntityLogic();
+
+
+            // Sets light to its default state, with air always "glowing"
+            for (int x = 0; x < gameWidth / terrain.TILE_DIMENSIONS; x++)
             {
-                for (int j = 0; j < gameHeight / terrain.TILE_DIMENSIONS + 2; j++)
+                for (int y = 0; y < gameHeight / terrain.TILE_DIMENSIONS; y++)
                 {
-                    if (terrain.Terrain[(i + (int)(cameraX / terrain.TILE_DIMENSIONS) + ( j + (int)(cameraY / terrain.TILE_DIMENSIONS) ) * gameWidth / terrain.TILE_DIMENSIONS)] == 0)
+                    if (x + y * terrain.worldWidth + cameraX / terrain.TILE_DIMENSIONS + cameraY / terrain.TILE_DIMENSIONS * terrain.worldWidth > 0 && x + y * terrain.worldWidth + cameraX / terrain.TILE_DIMENSIONS + cameraY / terrain.TILE_DIMENSIONS * terrain.worldWidth < terrain.worldWidth * terrain.worldHeight)
                     {
-                        if (i < gameWidth / terrain.TILE_DIMENSIONS && j < gameHeight / terrain.TILE_DIMENSIONS)
+                        if (terrain.Terrain[x + y * terrain.worldWidth + cameraX / terrain.TILE_DIMENSIONS + cameraY / terrain.TILE_DIMENSIONS * terrain.worldWidth] == 0)
                         {
-                            screenLight[i + j * gameWidth / terrain.TILE_DIMENSIONS] = 0f;
-                        }
-
-                    }
-                    else
-                    {
-                        if (i < gameWidth / terrain.TILE_DIMENSIONS && j < gameHeight / terrain.TILE_DIMENSIONS)
-                        {
-                            screenLight[i + j * gameWidth / terrain.TILE_DIMENSIONS] = 0f;
-                        }
-
-                    }
-                    
-                }
-
-            }
-
-            // game updates
-
-            base.Update(gameTime);
-        }
-
-        protected override void Draw(GameTime gameTime)
-        {
-            GraphicsDevice.Clear(Color.CornflowerBlue);
-            spriteBatch.Begin(samplerState: SamplerState.PointClamp);
-            for (int xRender = -1; xRender < gameWidth/terrain.TILE_DIMENSIONS + 1; xRender++)
-            {
-                for (int yRender = -1; yRender < gameHeight/terrain.TILE_DIMENSIONS + 1; yRender++)
-                {
-                    int getTerrainByPosition() 
-                    {
-                        return xRender + cameraX / terrain.TILE_DIMENSIONS + (yRender + cameraY / terrain.TILE_DIMENSIONS) * terrain.worldWidth;
-                    }
-
-                    float getLightByPosition()
-                    {
-                        return screenLight[xRender + 1 + ( yRender + 1) * (gameWidth / terrain.TILE_DIMENSIONS)];
-                    }
-
-
-                    if (getTerrainByPosition() > 1 && getTerrainByPosition() < (terrain.worldSize) )
-                    {
-                        if (terrain.Terrain[getTerrainByPosition()] != 0)
-                        {
-                            spriteBatch.Draw(terrainNames[terrain.Terrain[getTerrainByPosition()]], new Rectangle(xRender * terrain.TILE_DIMENSIONS + (int)(-cameraX % terrain.TILE_DIMENSIONS), yRender * terrain.TILE_DIMENSIONS + (int)(-cameraY % terrain.TILE_DIMENSIONS), terrain.TILE_DIMENSIONS, terrain.TILE_DIMENSIONS), new Color( getLightByPosition() * 255, getLightByPosition() * 255, getLightByPosition() * 255));
+                            screenLight[x + y * (gameWidth / terrain.TILE_DIMENSIONS)] = 255;
 
                         }
                         else
                         {
-                            if (terrain.BackgroundTerrain[getTerrainByPosition()] != 0)
+                            screenLight[x + y * (gameWidth / terrain.TILE_DIMENSIONS)] = 0;
+
+                        }
+
+                    }
+
+                }
+
+            }
+
+            // Screen light calculations!
+            for (int i = 0; i < 5; i++)
+            {
+                for (int x = 1; x < gameWidth / terrain.TILE_DIMENSIONS - 1; x++)
+                {
+                    for (int y = 1; y < gameHeight / terrain.TILE_DIMENSIONS - 1; y++)
+                    {
+                        if (screenLight[x + y * (gameWidth / terrain.TILE_DIMENSIONS)] != 255)
+                        {
+                            if (screenLight[x + y * (gameWidth / terrain.TILE_DIMENSIONS)] < screenLight[x + 1 + y * (gameWidth / terrain.TILE_DIMENSIONS)])
                             {
-                                spriteBatch.Draw(terrainNames[terrain.BackgroundTerrain[getTerrainByPosition()]], new Rectangle(xRender * terrain.TILE_DIMENSIONS + (int)(-cameraX % terrain.TILE_DIMENSIONS), yRender * terrain.TILE_DIMENSIONS + (int)(-cameraY % terrain.TILE_DIMENSIONS), terrain.TILE_DIMENSIONS, terrain.TILE_DIMENSIONS), new Color( getLightByPosition() * 128, getLightByPosition() * 128, getLightByPosition() * 128));
+                                screenLight[x + y * (gameWidth / terrain.TILE_DIMENSIONS)] = screenLight[x + 1 + y * (gameWidth / terrain.TILE_DIMENSIONS)] - 51;
+
+                            }
+
+                            if (screenLight[x + y * (gameWidth / terrain.TILE_DIMENSIONS)] < screenLight[x - 1 + y * (gameWidth / terrain.TILE_DIMENSIONS)])
+                            {
+                                screenLight[x + y * (gameWidth / terrain.TILE_DIMENSIONS)] = screenLight[x - 1 + y * (gameWidth / terrain.TILE_DIMENSIONS)] - 51;
+
+                            }
+
+                            if (screenLight[x + y * (gameWidth / terrain.TILE_DIMENSIONS)] < screenLight[x + (y + 1) * (gameWidth / terrain.TILE_DIMENSIONS)])
+                            {
+                                screenLight[x + y * (gameWidth / terrain.TILE_DIMENSIONS)] = screenLight[x + (y + 1) * (gameWidth / terrain.TILE_DIMENSIONS)] - 51;
+
+                            }
+
+                            if (screenLight[x + y * (gameWidth / terrain.TILE_DIMENSIONS)] < screenLight[x + (y - 1) * (gameWidth / terrain.TILE_DIMENSIONS)])
+                            {
+                                screenLight[x + y * (gameWidth / terrain.TILE_DIMENSIONS)] = screenLight[x + (y - 1) * (gameWidth / terrain.TILE_DIMENSIONS)] - 51;
 
                             }
 
@@ -207,6 +226,53 @@ namespace arcanum
                 }
 
             }
+
+            base.Update(gameTime);
+        }
+
+        protected override void Draw(GameTime gameTime)
+        {
+            GraphicsDevice.Clear(Color.CornflowerBlue);
+            spriteBatch.Begin(samplerState: SamplerState.PointClamp);
+            for (int xRender = 0; xRender < gameWidth/terrain.TILE_DIMENSIONS + 1; xRender++)
+            {
+                for (int yRender = 0; yRender < gameHeight/terrain.TILE_DIMENSIONS + 1; yRender++)
+                {
+                    int getTerrainByPosition() 
+                    {
+                        return xRender + cameraX / terrain.TILE_DIMENSIONS + (yRender + cameraY / terrain.TILE_DIMENSIONS) * terrain.worldWidth;
+                    }
+
+                    int getLightByPosition()
+                    {
+                        return screenLight[xRender + ( yRender * ( gameWidth / terrain.TILE_DIMENSIONS))];
+                    }
+
+
+                    if (getTerrainByPosition() > 1 && getTerrainByPosition() < (terrain.worldSize) )
+                    {
+                        if (terrain.Terrain[getTerrainByPosition()] != 0)
+                        {
+                            spriteBatch.Draw(terrainNames[terrain.Terrain[getTerrainByPosition()]], new Rectangle(xRender * terrain.TILE_DIMENSIONS + (int)(-cameraX % terrain.TILE_DIMENSIONS), yRender * terrain.TILE_DIMENSIONS + (int)(-cameraY % terrain.TILE_DIMENSIONS), terrain.TILE_DIMENSIONS, terrain.TILE_DIMENSIONS), new Color( getLightByPosition(), getLightByPosition(), getLightByPosition()));
+
+                        }
+                        else
+                        {
+                            if (terrain.BackgroundTerrain[getTerrainByPosition()] != 0)
+                            {
+                                spriteBatch.Draw(terrainNames[terrain.BackgroundTerrain[getTerrainByPosition()]], new Rectangle(xRender * terrain.TILE_DIMENSIONS + (int)(-cameraX % terrain.TILE_DIMENSIONS), yRender * terrain.TILE_DIMENSIONS + (int)(-cameraY % terrain.TILE_DIMENSIONS), terrain.TILE_DIMENSIONS, terrain.TILE_DIMENSIONS), new Color( getLightByPosition() / 2, getLightByPosition() / 2, getLightByPosition() / 2)   );
+
+                            }
+
+                        }
+
+                    }
+
+                }
+
+            }
+
+            spriteBatch.Draw(rightStand, new Rectangle(0 - cameraX, 0 - cameraY, 4 * 20, 4 * 24), Color.White);
 
             spriteBatch.End();
 
