@@ -25,14 +25,17 @@ namespace arcanum
         public Vector2 playerPositionOffset;
 
         public Random rnd = new();
-        readonly TerrainGenerator terrain = new();
-        readonly Entities entities = new();
+        public TerrainGenerator terrain;
+        readonly Entities entities;
 
         public Game1()
         {
             _graphics = new GraphicsDeviceManager(this);
             Content.RootDirectory = "Content";
             IsMouseVisible = true;
+
+            entities = new(this);
+            terrain = new(this);
         }
 
         protected override void Initialize()
@@ -136,6 +139,16 @@ namespace arcanum
                     break;
 
                 case 1:
+
+                    if (terrain.Terrain.Count == terrain.worldWidth * terrain.worldHeight)
+                    {
+                        gameState = 2;
+
+                    }
+
+                    break;
+
+                case 2:
 
                     KeyboardState state = Keyboard.GetState();
 

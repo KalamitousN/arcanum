@@ -16,12 +16,13 @@ namespace arcanum
 
         public List<byte> Terrain = new List<byte>();
         public List<byte> BackgroundTerrain = new List<byte>();
-
-        public TerrainGenerator()
+        private Game1 game;
+        public TerrainGenerator(Game1 game)
         {
             worldHeight = 1024;
             worldWidth = 16384;
-
+            this.game = game;
+            
         }
 
         public void Generate()
