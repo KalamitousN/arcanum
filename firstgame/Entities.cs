@@ -42,6 +42,17 @@ namespace arcanum
 
         }
 
+        public void cameraController(int x, int y)
+        {
+            game.cameraX = x;
+            game.cameraY = y;
+
+            if (y > game.terrain.worldHeight * game.terrain.TILE_DIMENSIONS - game.gameHeight + game.terrain.TILE_DIMENSIONS)
+            {
+                game.cameraY = game.terrain.worldHeight * game.terrain.TILE_DIMENSIONS - game.gameHeight + game.terrain.TILE_DIMENSIONS;
+
+            }
+        }
         public bool tileCollision(int x, int y)
         {
             if (game.terrain.Terrain[ x / game.terrain.TILE_DIMENSIONS + (y / game.terrain.TILE_DIMENSIONS * game.terrain.worldWidth)] == 0)
@@ -143,9 +154,8 @@ namespace arcanum
                             }
 
                         }
-                        
-                        game.cameraX = (int) currentEntityPosition.X - game.gameWidth / 2 + 40;
-                        game.cameraY = (int) currentEntityPosition.Y - game.gameHeight / 2 + 48;
+
+                        cameraController((int) currentEntityPosition.X - game.gameWidth / 2 + 40, (int) currentEntityPosition.Y - game.gameHeight / 2 + 48);
 
                         // Player Animation logic
 

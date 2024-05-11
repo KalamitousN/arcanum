@@ -350,6 +350,7 @@ namespace arcanum
                     for (generatorX = 0;  generatorX < worldWidth; generatorX++)
                     {
                         Terrain[generatorX + generatorY * worldWidth] = 9;
+
                     }
 
                 }
