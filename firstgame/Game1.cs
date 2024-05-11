@@ -1,4 +1,5 @@
 ﻿using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Audio;
 using Microsoft.Xna.Framework.Content;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
@@ -15,13 +16,16 @@ namespace arcanum
     {
         private GraphicsDeviceManager _graphics;
         private SpriteBatch spriteBatch;
-        private Texture2D grassTile, dirtTile, stoneTile, coalTile, copperTile, ironTile, leftArmForward, leftArmStand, leftArmUp, leftArmWalkBackward, leftArmWalkForward, leftStand, leftWalk, rightArmForward, rightArmStand, rightArmUp, rightArmWalkBackward, rightArmWalkForward, rightStand, rightWalk;
+        private Texture2D grassTile, dirtTile, stoneTile, coalTile, copperTile, ironTile, logTile, leafTile, barrierTile, leftArmForward, leftArmStand, leftArmUp, leftArmWalkBackward, leftArmWalkForward, leftStand, leftWalk, rightArmForward, rightArmStand, rightArmUp, rightArmWalkBackward, rightArmWalkForward, rightStand, rightWalk;
+        private SoundEffect break1, break2, break3;
         public int gameWidth, gameHeight, gameState;
         public int cameraX, cameraY, playerPositionX, playerPositionY;
 
         List<int> screenLight = new();
 
         public List<Texture2D> terrainNames = new();
+        public List<Texture2D> entitySpriteNames = new();
+        public List<byte> terrainTransparent = new();
         public Vector2 playerPositionOffset;
 
         public Random rnd = new();
@@ -34,8 +38,8 @@ namespace arcanum
             Content.RootDirectory = "Content";
             IsMouseVisible = true;
 
-            entities = new(this);
             terrain = new(this);
+            entities = new(this);
         }
 
         protected override void Initialize()
@@ -76,6 +80,9 @@ namespace arcanum
 
             }
 
+            terrainTransparent.Add(0);
+            terrainTransparent.Add(8);
+
             base.Initialize();
         }
 
@@ -91,7 +98,10 @@ namespace arcanum
             coalTile = Content.Load<Texture2D>("Sprites/coal");
             copperTile = Content.Load<Texture2D>("Sprites/copper");
             ironTile = Content.Load<Texture2D>("Sprites/iron");
-            
+            logTile = Content.Load<Texture2D>("Sprites/log");
+            leafTile = Content.Load<Texture2D>("Sprites/leaf");
+            barrierTile = Content.Load<Texture2D>("Sprites/barrier");
+
             // Player Sprites
             leftArmForward = Content.Load<Texture2D>("Sprites/Player/leftArmForward");
             leftArmStand = Content.Load<Texture2D>("Sprites/Player/leftArmStand");
@@ -110,13 +120,38 @@ namespace arcanum
             rightWalk = Content.Load<Texture2D>("Sprites/Player/rightWalk");
 
             // Load tile-textures into terrainNames for rendering
-            terrainNames.Add(grassTile);
-            terrainNames.Add(grassTile);
-            terrainNames.Add(dirtTile);
-            terrainNames.Add(stoneTile);
-            terrainNames.Add(coalTile);
-            terrainNames.Add(copperTile);
-            terrainNames.Add(ironTile);
+            terrainNames.Add(grassTile); // 0 Air, has the same sprite as grass, however, an if-statement stops it from rendering all together, so it doesn't matter! S(SIS)PAGHETTI CODE!
+            terrainNames.Add(grassTile); // 1 Grass
+            terrainNames.Add(dirtTile); // 2 Dirt
+            terrainNames.Add(stoneTile); // 3 Stone
+            terrainNames.Add(coalTile); // 4 Coal
+            terrainNames.Add(copperTile); // 5 Copper
+            terrainNames.Add(ironTile); // 6 Iron
+            terrainNames.Add(logTile); // 7 Log
+            terrainNames.Add(leafTile); // 8 Leaves
+            terrainNames.Add(barrierTile); // 9 Leaves
+
+            // Load entity textures, This is some spaghetti lord Jesus Christ would be appalled at.
+            entitySpriteNames.Add(leftArmForward); // 0
+            entitySpriteNames.Add(leftArmStand); // 1
+            entitySpriteNames.Add(leftArmUp); // 2
+            entitySpriteNames.Add(leftArmWalkBackward); // 3
+            entitySpriteNames.Add(leftArmWalkForward); // 4
+            entitySpriteNames.Add(leftStand); // 5
+            entitySpriteNames.Add(leftWalk); // 6
+
+            entitySpriteNames.Add(rightArmForward); // 7
+            entitySpriteNames.Add(rightArmStand); // 8
+            entitySpriteNames.Add(rightArmUp); // 9
+            entitySpriteNames.Add(rightArmWalkBackward); // 10
+            entitySpriteNames.Add(rightArmWalkForward); // 11
+            entitySpriteNames.Add(rightStand); // 12
+            entitySpriteNames.Add(rightWalk); // 13
+
+            // Load sounds
+            break1 = Content.Load<SoundEffect>("Sounds/break1");
+            break2 = Content.Load<SoundEffect>("Sounds/break2");
+            break3 = Content.Load<SoundEffect>("Sounds/break3");
 
             // load game content
         }
@@ -150,22 +185,39 @@ namespace arcanum
 
                 case 2:
 
-                    KeyboardState state = Keyboard.GetState();
+                    KeyboardState keyboardState = Keyboard.GetState();
+                    MouseState mouseState = Mouse.GetState();
 
-                    if (state.IsKeyDown(Keys.Escape))
+                    if (keyboardState.IsKeyDown(Keys.Escape))
                         Exit();
 
-                    if (state.IsKeyDown(Keys.W))
-                        cameraY -= 64;
+                    if (mouseState.LeftButton == ButtonState.Pressed)
+                    {
+                        if (terrain.Terrain[(cameraX + mouseState.Position.X) / terrain.TILE_DIMENSIONS + ((cameraY + mouseState.Position.Y) / terrain.TILE_DIMENSIONS * terrain.worldWidth)] != 0)
+                        {
+                            
+                            terrain.Terrain[(cameraX + mouseState.Position.X) / terrain.TILE_DIMENSIONS + ((cameraY + mouseState.Position.Y) / terrain.TILE_DIMENSIONS * terrain.worldWidth)] = 0;
+                            switch (rnd.Next(0, 3))
+                            {
+                                case 0:
+                                    break1.Play();
 
-                    if (state.IsKeyDown(Keys.S))
-                        cameraY += 64;
+                                    break;
 
-                    if (state.IsKeyDown(Keys.D))
-                        cameraX += 64;
+                                case 1:
+                                    break2.Play();
 
-                    if (state.IsKeyDown(Keys.A))
-                        cameraX -= 64;
+                                    break;
+
+                                case 2:
+                                    break3.Play();
+
+                                    break;
+                            }
+
+                        }
+                        
+                    }
 
                     // Runs all entity logic
                     entities.EntityLogic();
@@ -177,7 +229,7 @@ namespace arcanum
                         {
                             if (x + y * terrain.worldWidth + cameraX / terrain.TILE_DIMENSIONS + cameraY / terrain.TILE_DIMENSIONS * terrain.worldWidth > 0 && x + y * terrain.worldWidth + cameraX / terrain.TILE_DIMENSIONS + cameraY / terrain.TILE_DIMENSIONS * terrain.worldWidth < terrain.worldWidth * terrain.worldHeight)
                             {
-                                if (terrain.Terrain[x + y * terrain.worldWidth + cameraX / terrain.TILE_DIMENSIONS + cameraY / terrain.TILE_DIMENSIONS * terrain.worldWidth] == 0)
+                                if (terrainTransparent.Contains(terrain.Terrain[x + y * terrain.worldWidth + cameraX / terrain.TILE_DIMENSIONS + cameraY / terrain.TILE_DIMENSIONS * terrain.worldWidth]) == true)
                                 {
                                     screenLight[x + y * (gameWidth / terrain.TILE_DIMENSIONS)] = 255;
 
@@ -262,18 +314,15 @@ namespace arcanum
 
                     if (getTerrainByPosition() > 1 && getTerrainByPosition() < (terrain.worldSize) )
                     {
+                        if (terrainTransparent.Contains(terrain.Terrain[getTerrainByPosition()]) == true && terrain.BackgroundTerrain[getTerrainByPosition()] != 0)
+                        {
+                            spriteBatch.Draw(terrainNames[terrain.BackgroundTerrain[getTerrainByPosition()]], new Rectangle(xRender * terrain.TILE_DIMENSIONS + (int)(-cameraX % terrain.TILE_DIMENSIONS), yRender * terrain.TILE_DIMENSIONS + (int)(-cameraY % terrain.TILE_DIMENSIONS), terrain.TILE_DIMENSIONS, terrain.TILE_DIMENSIONS), new Color(getLightByPosition() / 2, getLightByPosition() / 2, getLightByPosition() / 2));
+
+                        }
+
                         if (terrain.Terrain[getTerrainByPosition()] != 0)
                         {
                             spriteBatch.Draw(terrainNames[terrain.Terrain[getTerrainByPosition()]], new Rectangle(xRender * terrain.TILE_DIMENSIONS + (int)(-cameraX % terrain.TILE_DIMENSIONS), yRender * terrain.TILE_DIMENSIONS + (int)(-cameraY % terrain.TILE_DIMENSIONS), terrain.TILE_DIMENSIONS, terrain.TILE_DIMENSIONS), new Color( getLightByPosition(), getLightByPosition(), getLightByPosition()));
-
-                        }
-                        else
-                        {
-                            if (terrain.BackgroundTerrain[getTerrainByPosition()] != 0)
-                            {
-                                spriteBatch.Draw(terrainNames[terrain.BackgroundTerrain[getTerrainByPosition()]], new Rectangle(xRender * terrain.TILE_DIMENSIONS + (int)(-cameraX % terrain.TILE_DIMENSIONS), yRender * terrain.TILE_DIMENSIONS + (int)(-cameraY % terrain.TILE_DIMENSIONS), terrain.TILE_DIMENSIONS, terrain.TILE_DIMENSIONS), new Color( getLightByPosition() / 2, getLightByPosition() / 2, getLightByPosition() / 2)   );
-
-                            }
 
                         }
 
@@ -282,9 +331,16 @@ namespace arcanum
                 }
 
             }
-            Vector2 currentRenderPosition = entities.entityPosition[0];
 
-            spriteBatch.Draw(rightStand, new Rectangle( (int) currentRenderPosition.X - cameraX, (int)currentRenderPosition.Y - cameraY, 4 * 20, 4 * 24), Color.White);
+            for (int i = 0; i < entities.entityType.Count; i++)
+            {
+                Vector2 currentRenderPosition = entities.entityPosition[i];
+                Vector2 currentSpriteDimensions = entities.spriteDimensions[i];
+                int currentAnimationTextureID = entities.animationTextureID[i];
+
+                spriteBatch.Draw(entitySpriteNames[currentAnimationTextureID], new Rectangle((int)currentRenderPosition.X - cameraX, (int)currentRenderPosition.Y - cameraY, 4 * (int) currentSpriteDimensions.X, 4 * (int) currentSpriteDimensions.Y), Color.White);
+
+            }
 
             spriteBatch.End();
 
