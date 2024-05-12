@@ -17,7 +17,7 @@ namespace arcanum
         private GraphicsDeviceManager _graphics;
         private SpriteBatch spriteBatch;
         private Texture2D grassTile, dirtTile, stoneTile, coalTile, copperTile, ironTile, logTile, leafTile, barrierTile, leftArmForward, leftArmStand, leftArmUp, leftArmWalkBackward, leftArmWalkForward, leftStand, leftWalk, rightArmForward, rightArmStand, rightArmUp, rightArmWalkBackward, rightArmWalkForward, rightStand, rightWalk;
-        private SoundEffect break1, break2, break3;
+        private SoundEffect break1, break2, break3, breakBackground;
         public int gameWidth, gameHeight, gameState;
         public int cameraX, cameraY, playerPositionX, playerPositionY;
 
@@ -152,6 +152,7 @@ namespace arcanum
             break1 = Content.Load<SoundEffect>("Sounds/break1");
             break2 = Content.Load<SoundEffect>("Sounds/break2");
             break3 = Content.Load<SoundEffect>("Sounds/break3");
+            breakBackground = Content.Load<SoundEffect>("Sounds/breakBackground");
 
             // load game content
         }
@@ -213,10 +214,23 @@ namespace arcanum
                                     break3.Play();
 
                                     break;
+
                             }
 
                         }
                         
+                    }
+
+                    if (mouseState.RightButton == ButtonState.Pressed)
+                    {
+                        if (terrain.BackgroundTerrain[(cameraX + mouseState.Position.X) / terrain.TILE_DIMENSIONS + ((cameraY + mouseState.Position.Y) / terrain.TILE_DIMENSIONS * terrain.worldWidth)] != 0)
+                        {
+
+                            terrain.BackgroundTerrain[(cameraX + mouseState.Position.X) / terrain.TILE_DIMENSIONS + ((cameraY + mouseState.Position.Y) / terrain.TILE_DIMENSIONS * terrain.worldWidth)] = 0;
+                            breakBackground.Play();
+
+                        }
+
                     }
 
                     // Runs all entity logic

@@ -31,6 +31,12 @@
 /processorParam:Quality=Best
 /build:Sounds/break3.wav
 
+#begin Sounds/breakBackground.wav
+/importer:WavImporter
+/processor:SoundEffectProcessor
+/processorParam:Quality=Best
+/build:Sounds/breakBackground.wav
+
 #begin Sprites/barrier.png
 /importer:TextureImporter
 /processor:TextureProcessor
