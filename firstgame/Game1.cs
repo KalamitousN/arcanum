@@ -16,7 +16,16 @@ namespace arcanum
     {
         private GraphicsDeviceManager _graphics;
         private SpriteBatch spriteBatch;
-        private Texture2D grassTile, dirtTile, stoneTile, coalTile, copperTile, ironTile, logTile, leafTile, barrierTile, leftArmForward, leftArmStand, leftArmUp, leftArmWalkBackward, leftArmWalkForward, leftStand, leftWalk, rightArmForward, rightArmStand, rightArmUp, rightArmWalkBackward, rightArmWalkForward, rightStand, rightWalk;
+        
+        // Tile Textures
+        private Texture2D grassTile, dirtTile, stoneTile, coalTile, copperTile, ironTile, logTile, leafTile, barrierTile, planksTile;
+        
+        // Player Textures
+        private Texture2D leftArmForward, leftArmStand, leftArmUp, leftArmWalkBackward, leftArmWalkForward, leftStand, leftWalk, rightArmForward, rightArmStand, rightArmUp, rightArmWalkBackward, rightArmWalkForward, rightStand, rightWalk;
+        
+        // Inventory Textures
+        private Texture2D hotbar, selectedItem;
+        
         private SoundEffect break1, break2, break3, breakBackground;
         public int gameWidth, gameHeight, gameState;
         public int cameraX, cameraY, playerPositionX, playerPositionY;
@@ -31,6 +40,7 @@ namespace arcanum
         public Random rnd = new();
         public TerrainGenerator terrain;
         readonly Entities entities;
+        private Inventory inventory;
 
         public Game1()
         {
@@ -40,6 +50,8 @@ namespace arcanum
 
             terrain = new(this);
             entities = new(this);
+            inventory = new(this);
+
         }
 
         protected override void Initialize()
@@ -90,7 +102,6 @@ namespace arcanum
         {
             spriteBatch = new SpriteBatch(GraphicsDevice);
 
-
             // Tile Sprites
             grassTile = Content.Load<Texture2D>("Sprites/grass");
             dirtTile = Content.Load<Texture2D>("Sprites/dirt");
@@ -101,6 +112,7 @@ namespace arcanum
             logTile = Content.Load<Texture2D>("Sprites/log");
             leafTile = Content.Load<Texture2D>("Sprites/leaf");
             barrierTile = Content.Load<Texture2D>("Sprites/barrier");
+            planksTile = Content.Load<Texture2D>("Sprites/planks");
 
             // Player Sprites
             leftArmForward = Content.Load<Texture2D>("Sprites/Player/leftArmForward");
@@ -119,6 +131,10 @@ namespace arcanum
             rightStand = Content.Load<Texture2D>("Sprites/Player/rightStand");
             rightWalk = Content.Load<Texture2D>("Sprites/Player/rightWalk");
 
+            // Inventory Sprites
+            hotbar = Content.Load<Texture2D>("Sprites/Inventory/hotbar");
+            selectedItem = Content.Load<Texture2D>("Sprites/Inventory/selectedItem");
+
             // Load tile-textures into terrainNames for rendering
             terrainNames.Add(grassTile); // 0 Air, has the same sprite as grass, however, an if-statement stops it from rendering all together, so it doesn't matter! S(SIS)PAGHETTI CODE!
             terrainNames.Add(grassTile); // 1 Grass
@@ -129,7 +145,8 @@ namespace arcanum
             terrainNames.Add(ironTile); // 6 Iron
             terrainNames.Add(logTile); // 7 Log
             terrainNames.Add(leafTile); // 8 Leaves
-            terrainNames.Add(barrierTile); // 9 Leaves
+            terrainNames.Add(barrierTile); // 9 Barrier
+            terrainNames.Add(planksTile); // 10 Planks
 
             // Load entity textures, This is some spaghetti lord Jesus Christ would be appalled at.
             entitySpriteNames.Add(leftArmForward); // 0
@@ -194,47 +211,19 @@ namespace arcanum
 
                     if (mouseState.LeftButton == ButtonState.Pressed)
                     {
-                        if (terrain.Terrain[(cameraX + mouseState.Position.X) / terrain.TILE_DIMENSIONS + ((cameraY + mouseState.Position.Y) / terrain.TILE_DIMENSIONS * terrain.worldWidth)] != 0)
-                        {
-                            
-                            terrain.Terrain[(cameraX + mouseState.Position.X) / terrain.TILE_DIMENSIONS + ((cameraY + mouseState.Position.Y) / terrain.TILE_DIMENSIONS * terrain.worldWidth)] = 0;
-                            switch (rnd.Next(0, 3))
-                            {
-                                case 0:
-                                    break1.Play();
+                        terrain.Terrain[(cameraX + mouseState.Position.X) / terrain.TILE_DIMENSIONS + ((cameraY + mouseState.Position.Y) / terrain.TILE_DIMENSIONS * terrain.worldWidth)] = (byte) inventory.currentHotbarSlotId;
 
-                                    break;
-
-                                case 1:
-                                    break2.Play();
-
-                                    break;
-
-                                case 2:
-                                    break3.Play();
-
-                                    break;
-
-                            }
-
-                        }
-                        
                     }
 
                     if (mouseState.RightButton == ButtonState.Pressed)
                     {
-                        if (terrain.BackgroundTerrain[(cameraX + mouseState.Position.X) / terrain.TILE_DIMENSIONS + ((cameraY + mouseState.Position.Y) / terrain.TILE_DIMENSIONS * terrain.worldWidth)] != 0)
-                        {
-
-                            terrain.BackgroundTerrain[(cameraX + mouseState.Position.X) / terrain.TILE_DIMENSIONS + ((cameraY + mouseState.Position.Y) / terrain.TILE_DIMENSIONS * terrain.worldWidth)] = 0;
-                            breakBackground.Play();
-
-                        }
+                        terrain.BackgroundTerrain[(cameraX + mouseState.Position.X) / terrain.TILE_DIMENSIONS + ((cameraY + mouseState.Position.Y) / terrain.TILE_DIMENSIONS * terrain.worldWidth)] = (byte) inventory.currentHotbarSlotId;
 
                     }
 
                     // Runs all entity logic
                     entities.EntityLogic();
+                    inventory.InventorySystem();
 
                     // Sets light to its default state, with air always "glowing"
                     for (int x = 0; x < gameWidth / terrain.TILE_DIMENSIONS; x++)
@@ -312,6 +301,8 @@ namespace arcanum
         {
             GraphicsDevice.Clear(Color.CornflowerBlue);
             spriteBatch.Begin(samplerState: SamplerState.PointClamp);
+
+            // Tile renderer
             for (int xRender = 0; xRender < gameWidth/terrain.TILE_DIMENSIONS + 1; xRender++)
             {
                 for (int yRender = 0; yRender < gameHeight/terrain.TILE_DIMENSIONS + 1; yRender++)
@@ -346,6 +337,7 @@ namespace arcanum
 
             }
 
+            // Entity renderer
             for (int i = 0; i < entities.entityType.Count; i++)
             {
                 Vector2 currentRenderPosition = entities.entityPosition[i];
@@ -356,6 +348,9 @@ namespace arcanum
 
             }
 
+            // Extra rendering stuff
+            spriteBatch.Draw(hotbar, new Rectangle(24, 24, 796, 96), Color.White);
+            spriteBatch.Draw(selectedItem, new Rectangle(52 + inventory.currentHotbarSlot * 92, 24, 96, 96), Color.White);
             spriteBatch.End();
 
             // rendering

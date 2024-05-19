@@ -44,12 +44,12 @@ namespace arcanum
 
         public void cameraController(int x, int y)
         {
-            game.cameraX = x;
-            game.cameraY = y;
+            game.cameraX -= (int)((float)(game.cameraX - x) / 3f);
+            game.cameraY -= (int)((float)(game.cameraY - y) / 3f);
 
-            if (y > game.terrain.worldHeight * game.terrain.TILE_DIMENSIONS - game.gameHeight + game.terrain.TILE_DIMENSIONS)
+            if (y > game.terrain.worldHeight * game.terrain.TILE_DIMENSIONS - game.gameHeight + 16)
             {
-                game.cameraY = game.terrain.worldHeight * game.terrain.TILE_DIMENSIONS - game.gameHeight + game.terrain.TILE_DIMENSIONS;
+                game.cameraY = game.terrain.worldHeight * game.terrain.TILE_DIMENSIONS - game.gameHeight + 16;
 
             }
         }
@@ -117,6 +117,122 @@ namespace arcanum
 
                         }
 
+                        // wall collision checker, checks the direction the player is going to be more performant and only check for a wall in the walking direction.
+                        if (currentEntityPhysics.X < 0)
+                        {
+                            // Upper Tile Check
+                            if (tileCollision((int)currentEntityPosition.X + 24, (int)currentEntityPosition.Y + 16) == false)
+                            {
+                                currentEntityPhysics.X = 0;
+
+                                while (tileCollision((int)currentEntityPosition.X + 24, (int)currentEntityPosition.Y + 16) == false)
+                                {
+                                    currentEntityPosition.X++;
+
+                                }
+
+                            }
+
+                            // Middle Tile Check
+                            if (tileCollision((int)currentEntityPosition.X + 24, (int)currentEntityPosition.Y + 48) == false)
+                            {
+                                currentEntityPhysics.X = 0;
+
+                                while (tileCollision((int)currentEntityPosition.X + 24, (int)currentEntityPosition.Y + 48) == false)
+                                {
+                                    currentEntityPosition.X++;
+
+                                }
+
+                            }
+
+                            // Lower collision, usually shouldn't check so you can walk up tiles like stairs
+                            if (tileCollision((int)currentEntityPosition.X + 24, (int)currentEntityPosition.Y - 16) == false)
+                            {
+                                if (tileCollision((int)currentEntityPosition.X + 24, (int)currentEntityPosition.Y + 80) == false)
+                                {
+                                    currentEntityPhysics.X = 0;
+
+                                    while (tileCollision((int)currentEntityPosition.X + 24, (int)currentEntityPosition.Y + 80) == false)
+                                    {
+                                        currentEntityPosition.X++;
+
+                                    }
+
+                                }
+
+                            }
+
+                        }
+                        else
+                        {
+                            // Upper Tile Check
+                            if (tileCollision((int)currentEntityPosition.X + 56, (int)currentEntityPosition.Y + 16) == false)
+                            {
+                                currentEntityPhysics.X = 0;
+
+                                while (tileCollision((int)currentEntityPosition.X + 56, (int)currentEntityPosition.Y + 16) == false)
+                                {
+                                    currentEntityPosition.X--;
+
+                                }
+
+                            }
+
+                            // Middle Tile Check
+                            if (tileCollision((int)currentEntityPosition.X + 56, (int)currentEntityPosition.Y + 48) == false)
+                            {
+                                currentEntityPhysics.X = 0;
+
+                                while (tileCollision((int)currentEntityPosition.X + 56, (int)currentEntityPosition.Y + 48) == false)
+                                {
+                                    currentEntityPosition.X--;
+
+                                }
+
+                            }
+
+                            // Lower collision, usually shouldn't check so you can walk up tiles like stairs
+                            if (tileCollision((int)currentEntityPosition.X + 56, (int)currentEntityPosition.Y - 16) == false)
+                            {
+                                if (tileCollision((int)currentEntityPosition.X + 56, (int)currentEntityPosition.Y + 80) == false)
+                                {
+                                    currentEntityPhysics.X = 0;
+
+                                    while (tileCollision((int)currentEntityPosition.X + 56, (int)currentEntityPosition.Y + 80) == false)
+                                    {
+                                        currentEntityPosition.X--;
+
+                                    }
+
+                                }
+
+                            }
+
+                        }
+
+                        if(tileCollision((int)currentEntityPosition.X + 40, (int)currentEntityPosition.Y) == false)
+                        {
+                            if (currentEntityPhysics.Y < 0)
+                            {
+                                currentEntityPhysics.Y = 0;
+
+                            }
+
+                            while (tileCollision((int)currentEntityPosition.X + 40, (int)currentEntityPosition.Y) == false)
+                            {
+                                currentEntityPosition.Y++;
+
+                            }
+
+                        }
+
+                        while (tileCollision((int)currentEntityPosition.X + 40, (int)currentEntityPosition.Y + 64) == false)
+                        {
+                            currentEntityPosition.Y--;
+                        }
+
+                        // Checks if we have a tile under the player, if we do, we disable gravity.
                         if (tileCollision((int)currentEntityPosition.X + 40, (int)currentEntityPosition.Y + 96) == true)
                         {
                             if (currentEntityPhysics.Y < -6f)
@@ -171,6 +287,7 @@ namespace arcanum
                                 facingDirection = 1;
 
                             }
+
                         }
 
                         if (currentEntityPhysics.Y == 0)
@@ -220,6 +337,7 @@ namespace arcanum
                                     currentAnimationIncrement++;
 
                                 }
+
                             }
 
                         }
@@ -260,6 +378,7 @@ namespace arcanum
                                 facingDirection = 1;
 
                             }
+
                         }
 
                         if (currentEntityPhysics.Y == 0)
@@ -345,6 +464,7 @@ namespace arcanum
                                     currentAnimationIncrement++;
 
                                 }
+
                             }
 
                         }

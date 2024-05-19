@@ -19,10 +19,93 @@ namespace arcanum
         private Game1 game;
         public TerrainGenerator(Game1 game)
         {
-            worldHeight = 2056;
+            worldHeight = 2048;
             worldWidth = 16384;
             this.game = game;
             
+        }
+
+        public void treeGenerator(int x, int minHeight, int maxHeight)
+        {
+            int generatorX = x;
+            int generatorY = 0;
+
+            // Runs till it finds the ground, from the top of the world to the bottom on a random X-cordinate.
+            for (int y = 1; y < worldHeight - 1; y++)
+            {
+                generatorY = y;
+
+                if (Terrain[generatorX + generatorY * worldWidth] == 1)
+                {
+                    break;
+
+                }
+
+            }
+
+            // Makes the stalk of the tree. Vague numbers are my favourite. 
+            if (Terrain[generatorX + generatorY * worldWidth] == 1)
+            {
+                for (int y = 0; y < rnd.Next(4, 16) * 2 + 1; y++)
+                {
+                    generatorY--;
+
+                    BackgroundTerrain[generatorX + generatorY * worldWidth] = 7;
+
+                    // Makes branches, 50% chance for every other piece of the log
+                    if (rnd.Next(0, 2) == 0 && 4 < y && y % 2 == 0)
+                    {
+                        int x3 = rnd.Next(-1, 1) * 2 + 1;
+                        int x2;
+                        int y2;
+
+                        BackgroundTerrain[generatorX + x3 + generatorY * worldWidth] = 7;
+
+                        // Makes small "shrub crowns" of the tree
+                        for (y2 = -2; y2 < 3; y2++)
+                        {
+                            for (x2 = -2; x2 < 3; x2++)
+                            {
+                                if (Math.Abs(x2) + Math.Abs(y2) < 3)
+                                {
+                                    Terrain[generatorX + x2 + x3 + (generatorY + y2) * worldWidth] = 8;
+
+                                }
+
+                            }
+
+                        }
+
+                    }
+
+                }
+
+                // Makes the crown of the tree
+                for (int y2 = -3; y2 < 4; y2++)
+                {
+                    for (int x2 = -3; x2 < 4; x2++)
+                    {
+                        if (Math.Abs(x2) + Math.Abs(y2) < 4)
+                        {
+                            Terrain[generatorX + x2 + (generatorY + y2) * worldWidth] = 8;
+
+                        }
+
+                    }
+
+                }
+
+
+                // Makes bottom barrier full-covering
+                generatorY = worldHeight - 1;
+                for (generatorX = 0; generatorX < worldWidth; generatorX++)
+                {
+                    Terrain[generatorX + generatorY * worldWidth] = 9;
+
+                }
+
+            }
+
         }
 
         public void Generate()
@@ -96,6 +179,7 @@ namespace arcanum
                                 {
                                     generatorX += rnd.Next(-1, 2);
                                     generatorY += rnd.Next(-6, 7);
+
                                     if (0 < x + generatorX && x + generatorX < worldWidth && 0 < y + generatorY && y + generatorY < worldHeight)
                                     {
                                         if (Terrain[x + generatorX + (y + generatorY) * worldWidth] != 0)
@@ -274,86 +358,9 @@ namespace arcanum
             }
 
             // Tree generator, generates trees! No basically carpet bombs the world in trees akkktually :nerd:
-            for (int i = 0; i < worldWidth/10; i++)
+            for (int i = 0; i < worldWidth/20; i++)
             {
-                generatorX = rnd.Next(30, worldWidth - 30);
-                generatorY = 0;
-
-                // Runs till it finds the ground, from the top of the world to the bottom on a random X-cordinate.
-                for (int y = 1; y < worldHeight - 1; y++)
-                {
-                    generatorY = y;
-
-                    if (Terrain[generatorX + generatorY * worldWidth] == 1)
-                    {
-                        break;
-
-                    }
-
-                }
-
-                // Makes the stalk of the tree. Vague numbers are my favourite. 
-                if (Terrain[generatorX + generatorY * worldWidth] == 1)
-                {
-                    for(int y = 0; y < rnd.Next(4, 16) * 2 + 1; y++)
-                    {
-                        generatorY--;
-
-                        BackgroundTerrain[generatorX + generatorY * worldWidth] = 7;
-
-                        // Makes branches, 50% chance for every other piece of the log
-                        if (rnd.Next(0, 2) == 0 && 2 < y && y%2 == 0)
-                        {
-                            int x3 = rnd.Next(-1, 1) * 2 + 1;
-                            int x2;
-                            int y2;
-
-                            BackgroundTerrain[generatorX + x3 + generatorY * worldWidth] = 7;
-
-                            // Makes small "shrub crowns" of the tree
-                            for (y2 = -2; y2 < 3; y2++)
-                            {
-                                for (x2 = -2; x2 < 3; x2++)
-                                {
-                                    if (Math.Abs(x2) + Math.Abs(y2) < 3)
-                                    {
-                                        Terrain[generatorX + x2 + x3 + (generatorY + y2) * worldWidth] = 8;
-
-                                    }
-
-                                }
-
-                            }
-
-                        }
-
-                    }
-
-                    // Makes the crown of the tree
-                    for (int y2 = -3; y2 < 4; y2++)
-                    {
-                        for (int x2 = -3; x2 < 4; x2++)
-                        {
-                            if (Math.Abs(x2) + Math.Abs(y2) < 4)
-                            {
-                                Terrain[generatorX + x2 + (generatorY + y2) * worldWidth] = 8;
-
-                            }
-
-                        }
-
-                    }
-
-
-                    // Makes bottom barrier full-covering
-                    generatorY = worldHeight - 1;
-                    for (generatorX = 0;  generatorX < worldWidth; generatorX++)
-                    {
-                        Terrain[generatorX + generatorY * worldWidth] = 9;
-
-                    }
-
-                }
+                treeGenerator( rnd.Next(30, worldWidth - 30), 4, 32);
 
             }
 
