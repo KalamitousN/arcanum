@@ -15,11 +15,14 @@ namespace arcanum
 
         public Inventory(Game1 game) 
         {
-            for (int i = 0; i < 8; i++)
-            {
-                inventoryItemID.Add(i);
-
-            }
+            inventoryItemID.Add(0);
+            inventoryItemID.Add(3);
+            inventoryItemID.Add(7);
+            inventoryItemID.Add(10);
+            inventoryItemID.Add(11);
+            inventoryItemID.Add(0);
+            inventoryItemID.Add(0);
+            inventoryItemID.Add(0);
 
             currentHotbarSlot = 0;
 

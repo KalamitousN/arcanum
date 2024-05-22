@@ -47,15 +47,34 @@ namespace arcanum
             game.cameraX -= (int)((float)(game.cameraX - x) / 3f);
             game.cameraY -= (int)((float)(game.cameraY - y) / 3f);
 
-            if (y > game.terrain.worldHeight * game.terrain.TILE_DIMENSIONS - game.gameHeight + 16)
+            if (y < game.gameHeight)
             {
-                game.cameraY = game.terrain.worldHeight * game.terrain.TILE_DIMENSIONS - game.gameHeight + 16;
+                game.cameraY = game.gameHeight;
 
             }
+
+            if (y > game.terrain.worldHeight * game.terrain.TILE_DIMENSIONS - game.gameHeight - 128)
+            {
+                game.cameraY = game.terrain.worldHeight * game.terrain.TILE_DIMENSIONS - game.gameHeight - 128;
+
+            }
+
+            if (x < game.gameWidth)
+            {
+                game.cameraX = game.gameWidth;
+
+            }
+
+            if (x > game.terrain.worldWidth * game.terrain.TILE_DIMENSIONS - game.gameWidth)
+            {
+                game.cameraX = game.terrain.worldWidth * game.terrain.TILE_DIMENSIONS - game.gameWidth;
+
+            }
+
         }
         public bool tileCollision(int x, int y)
         {
-            if (game.terrain.Terrain[ x / game.terrain.TILE_DIMENSIONS + (y / game.terrain.TILE_DIMENSIONS * game.terrain.worldWidth)] == 0)
+            if (game.terrainWalkthrough.Contains(game.terrain.Terrain[ x / game.terrain.TILE_DIMENSIONS + (y / game.terrain.TILE_DIMENSIONS * game.terrain.worldWidth)]) == true)
             {
                 return true;
 
