@@ -27,7 +27,7 @@ namespace arcanum
         {
             this.game = game;
             entityType.Add(0);
-            entityPosition.Add(new Vector2(game.terrain.worldWidth * 16, game.terrain.worldHeight * 16));
+            entityPosition.Add(new Vector2(game.terrain.worldWidth * 16, game.terrain.worldHeight * 16 - 1024));
             entityPhysics.Add(new Vector2(0, 0));
             animationIncrement.Add(0);
             animationTextureID.Add(0);

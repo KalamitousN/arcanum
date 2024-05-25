@@ -3,6 +3,7 @@ using Microsoft.Xna.Framework.Audio;
 using Microsoft.Xna.Framework.Content;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
+using Microsoft.Xna.Framework.Media;
 using System;
 using System.Collections.Generic;
 using System.Linq.Expressions;
@@ -24,7 +25,7 @@ namespace arcanum
         private Texture2D sun;
 
         // Tile Textures
-        private Texture2D grassTile, dirtTile, stoneTile, coalTile, copperTile, ironTile, logTile, leafTile, barrierTile, planksTile, torchTile;
+        private Texture2D grassTile, dirtTile, stoneTile, coalTile, copperTile, ironTile, logTile, leafTile, barrierTile, planksTile, torchTile, glassTile;
         
         // Player Textures
         private Texture2D leftArmForward, leftArmStand, leftArmUp, leftArmWalkBackward, leftArmWalkForward, leftStand, leftWalk, rightArmForward, rightArmStand, rightArmUp, rightArmWalkBackward, rightArmWalkForward, rightStand, rightWalk;
@@ -32,7 +33,15 @@ namespace arcanum
         // Inventory Textures
         private Texture2D hotbar, selectedItem;
         
+        // Sound Effects
         private SoundEffect break1, break2, break3, breakBackground;
+
+        // Music
+        private Song track1, track2, track3, track4;
+
+        Song desiredTheme, currentTheme;
+
+        // Variables
         public int gameWidth, gameHeight, gameState;
         public int cameraX, cameraY, playerPositionX, playerPositionY, worldTime;
 
@@ -104,10 +113,11 @@ namespace arcanum
             terrainWalkthrough.Add(0);
             terrainWalkthrough.Add(11);
 
-            // Transparent tiles, includes Air and Leaves
+            // Transparent tiles, Air, leaves, torches and glass
             terrainTransparent.Add(0);
             terrainTransparent.Add(8);
             terrainTransparent.Add(11);
+            terrainTransparent.Add(12);
 
             // Glowing tiles, torch
             terrainGlowing.Add(11);
@@ -137,6 +147,7 @@ namespace arcanum
             barrierTile = Content.Load<Texture2D>("Sprites/barrier");
             planksTile = Content.Load<Texture2D>("Sprites/planks");
             torchTile = Content.Load<Texture2D>("Sprites/torch");
+            glassTile = Content.Load<Texture2D>("Sprites/glass");
 
             // Player Sprites
             leftArmForward = Content.Load<Texture2D>("Sprites/Player/leftArmForward");
@@ -172,6 +183,7 @@ namespace arcanum
             terrainNames.Add(barrierTile); // 9 Barrier
             terrainNames.Add(planksTile); // 10 Planks
             terrainNames.Add(torchTile); // 11 Torch
+            terrainNames.Add(glassTile); // 12 Glass
 
             // Load entity textures, This is some spaghetti lord Jesus Christ would be appalled at.
             entitySpriteNames.Add(leftArmForward); // 0
@@ -195,6 +207,12 @@ namespace arcanum
             break2 = Content.Load<SoundEffect>("Sounds/break2");
             break3 = Content.Load<SoundEffect>("Sounds/break3");
             breakBackground = Content.Load<SoundEffect>("Sounds/breakBackground");
+
+            // Load music
+            track1 = Content.Load<Song>("Music/serenesolaceA");
+            track2 = Content.Load<Song>("Music/serenesolaceB");
+            track3 = Content.Load<Song>("Music/breeze");
+            track4 = Content.Load<Song>("Music/silence");
 
             // load game content
         }
@@ -229,11 +247,55 @@ namespace arcanum
 
                 case 2:
 
+                    
+                    // Increments world time and resets it after a day has passed
                     worldTime++;
 
                     if (86400 < worldTime)
                     {
                         worldTime = 0;
+                    }
+
+                    // Media player logic
+                    int randomTrackVariable = rnd.Next(0, 4);
+ 
+                    if (rnd.Next(0, 5000) == 0)
+                    {
+                        if (MediaPlayer.Queue.ActiveSong == null)
+                        {
+                            desiredTheme = randomTrackVariable == 0 ? track1 : randomTrackVariable == 2 ? track2: randomTrackVariable == 3 ? track3 : track4;
+                        }
+
+                    }
+
+                    // Fades in music properly
+                    if (MediaPlayer.Queue.ActiveSong == null)
+                    {
+                        if (MediaPlayer.Volume != 0.05f)
+                        {
+                            MediaPlayer.Volume = 0.05f;
+
+                        }
+
+                    }
+                    else
+                    {
+                        if (MediaPlayer.Volume < 0.5f)
+                        {
+                            MediaPlayer.Volume += 0.001f;
+
+                        }
+
+                    }
+
+                    // Check if the desired theme is different from the currently playing theme
+                    if (MediaPlayer.Queue.ActiveSong != desiredTheme)
+                    {
+                        // If different, play the desired theme
+                        MediaPlayer.Stop();
+                        MediaPlayer.Play(desiredTheme);
+                        currentTheme = desiredTheme;
+
                     }
 
                     KeyboardState keyboardState = Keyboard.GetState();
@@ -267,7 +329,9 @@ namespace arcanum
                             {
                                 if (terrainTransparent.Contains(terrain.Terrain[x + y * terrain.worldWidth + cameraX / terrain.TILE_DIMENSIONS + cameraY / terrain.TILE_DIMENSIONS * terrain.worldWidth]) == true && terrainTransparent.Contains(terrain.BackgroundTerrain[x + y * terrain.worldWidth + cameraX / terrain.TILE_DIMENSIONS + cameraY / terrain.TILE_DIMENSIONS * terrain.worldWidth]) == true)
                                 {
-                                    screenLight[x + y * (gameWidth / terrain.TILE_DIMENSIONS)] = 255;
+                                    double sunSin = (double)Math.Sin((double)(worldTime - 43200) / 13800);
+
+                                    screenLight[x + y * (gameWidth / terrain.TILE_DIMENSIONS)] = Math.Clamp((int)(0.5 + -sunSin * 255), 64, 255);
 
                                 }
                                 else
@@ -384,14 +448,17 @@ namespace arcanum
 
         protected override void Draw(GameTime gameTime)
         {
-            GraphicsDevice.Clear(Color.CornflowerBlue);
+            double sunCos = (double)Math.Cos((double)(worldTime - 43200) / 13800);
+            double sunSin = (double)Math.Sin((double)(worldTime - 43200) / 13800);
+
+            GraphicsDevice.Clear(new Color((int)(96 * Math.Clamp((0.5 + -sunSin), 0, 1)), (int)(128 * Math.Clamp((0.1 + -sunSin), 0, 1)), (int)(255 * Math.Clamp((0.1 + -sunSin), 0, 1))));
             spriteBatch.Begin(samplerState: SamplerState.PointClamp);
 
-            double sunCos = (double) Math.Cos((double)(worldTime - 43200) / 13800);
-            double sunSin = (double) Math.Sin((double)(worldTime - 43200) / 13800);
+            int sunX = (int)(sunCos * gameWidth / 2) + gameWidth / 2;
+            int sunY = (int)(sunSin * gameHeight) + gameHeight;
 
             // Background Renderer
-            spriteBatch.Draw(sun, new Rectangle( (int) (sunCos * gameWidth / 2) - 64 + gameWidth / 2, (int) (sunSin * gameHeight) - 64 + gameHeight, 128, 128), Color.White);
+            spriteBatch.Draw(sun, new Rectangle( sunX - 64, sunY - 64, 128, 128), Color.White);
 
             // Tile renderer
             for (int xRender = 0; xRender < gameWidth/terrain.TILE_DIMENSIONS + 1; xRender++)
@@ -400,12 +467,14 @@ namespace arcanum
                 {
                     int getTerrainByPosition() 
                     {
-                        return xRender + cameraX / terrain.TILE_DIMENSIONS + (yRender + cameraY / terrain.TILE_DIMENSIONS) * terrain.worldWidth;
+                        return xRender + cameraX / terrain.TILE_DIMENSIONS 
+                            + (yRender + cameraY / terrain.TILE_DIMENSIONS) * terrain.worldWidth;
                     }
 
                     int getLightByPosition()
                     {
-                        return screenLight[xRender + ( yRender * ( gameWidth / terrain.TILE_DIMENSIONS))];
+                        return screenLight[xRender 
+                            + ( yRender * ( gameWidth / terrain.TILE_DIMENSIONS))];
                     }
 
                     if (getTerrainByPosition() > 1 && getTerrainByPosition() < (terrain.worldSize) )
@@ -428,6 +497,72 @@ namespace arcanum
 
             }
 
+            double lightDistance()
+            {
+                return 128;
+            }
+
+            // Screen light effect, raytracing on a budget with my programming skills :sigma:
+            for (int lightIncrement = 0; lightIncrement < 16;  lightIncrement++)
+            {
+                for (int xRender = 0; xRender < gameWidth / terrain.TILE_DIMENSIONS + 1; xRender++)
+                {
+                    for (int yRender = 0; yRender < gameHeight / terrain.TILE_DIMENSIONS + 1; yRender++)
+                    {
+                        int getTerrainByPosition()
+                        {
+                            return xRender + cameraX / terrain.TILE_DIMENSIONS 
+                                + (yRender + cameraY / terrain.TILE_DIMENSIONS) 
+                                * terrain.worldWidth;
+                        }
+
+                        int getLightByPosition()
+                        {
+                            return screenLight[xRender 
+                                + (yRender * (gameWidth / terrain.TILE_DIMENSIONS))];
+                        }
+
+                        int xLightPosition()
+                        {
+                            double lightFactor = (double)lightIncrement / lightDistance();
+
+                            return (int)(xRender * terrain.TILE_DIMENSIONS) - (int)((cameraX % terrain.TILE_DIMENSIONS) * (lightFactor + 1)) + (int)((xRender * terrain.TILE_DIMENSIONS - sunX) * lightFactor);
+                        }
+
+                        int yLightPosition()
+                        {
+                            double lightFactor = (double)lightIncrement / lightDistance();
+
+                            return (int)(yRender * terrain.TILE_DIMENSIONS) - (int)((cameraY % terrain.TILE_DIMENSIONS) * (lightFactor + 1)) + (int)((yRender * terrain.TILE_DIMENSIONS - sunY) * lightFactor);
+                        }
+
+                        int tileSize()
+                        {
+                            return (int)(terrain.TILE_DIMENSIONS * ((double)lightIncrement / lightDistance() + 1));
+                        }
+
+                        if (getTerrainByPosition() > 1 && getTerrainByPosition() < (terrain.worldSize))
+                        {
+                            if (terrainTransparent.Contains(terrain.Terrain[getTerrainByPosition()]) == true && terrain.BackgroundTerrain[getTerrainByPosition()] != 0)
+                            {
+                                spriteBatch.Draw(terrainNames[terrain.BackgroundTerrain[getTerrainByPosition()]], new Rectangle(xLightPosition(), yLightPosition(), tileSize(), tileSize()), new Color(0, 0, 0, ((int) (6 * (0 - sunSin)))));
+
+                            }
+
+                            if (terrain.Terrain[getTerrainByPosition()] != 0)
+                            {
+                                spriteBatch.Draw(terrainNames[terrain.Terrain[getTerrainByPosition()]], new Rectangle(xLightPosition(), yLightPosition(), tileSize(), tileSize()), new Color( 0, 0, 0, ((int)(6 * (0 - sunSin)))));
+
+                            }
+
+                        }
+
+                    }
+
+                }
+
+            }
+
             // Entity renderer
             for (int i = 0; i < entities.entityType.Count; i++)
             {
@@ -441,6 +576,16 @@ namespace arcanum
 
             // Extra rendering stuff
             spriteBatch.Draw(hotbar, new Rectangle(24, 24, 796, 96), Color.White);
+            for (int x = 0; x < 8; x++)
+            {
+                if (inventory.inventoryItemID[x] != 0)
+                {
+                    spriteBatch.Draw(terrainNames[inventory.inventoryItemID[x]], new Rectangle(84 + x * 92, 56, 32, 32), Color.White);
+
+                }
+
+            }
+
             spriteBatch.Draw(selectedItem, new Rectangle(52 + inventory.currentHotbarSlot * 92, 24, 96, 96), Color.White);
             // Debug overlay rendering, may be empty
             spriteBatch.DrawString(debugFont, $"Current world time: {worldTime}", new Vector2(0, 0), Color.White);

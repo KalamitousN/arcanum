@@ -20,9 +20,9 @@ namespace arcanum
             inventoryItemID.Add(7);
             inventoryItemID.Add(10);
             inventoryItemID.Add(11);
-            inventoryItemID.Add(0);
-            inventoryItemID.Add(0);
-            inventoryItemID.Add(0);
+            inventoryItemID.Add(1);
+            inventoryItemID.Add(2);
+            inventoryItemID.Add(12);
 
             currentHotbarSlot = 0;
 
