@@ -85,7 +85,7 @@ namespace arcanum
                 {
                     for (int x2 = -3; x2 < 4; x2++)
                     {
-                        if (Math.Abs(x2) + Math.Abs(y2) < 4)
+                        if (Math.Abs(x2) + Math.Abs(y2) < 5)
                         {
                             Terrain[generatorX + x2 + (generatorY + y2) * worldWidth] = 8;
 
