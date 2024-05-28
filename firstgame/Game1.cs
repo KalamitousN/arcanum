@@ -18,9 +18,6 @@ namespace arcanum
         private GraphicsDeviceManager _graphics;
         private SpriteBatch spriteBatch;
 
-        // Debug Material
-        private SpriteFont debugFont;
-        
         // Background Textures
         private Texture2D sun, backgroundTerrain;
 
@@ -274,9 +271,6 @@ namespace arcanum
         protected override void LoadContent()
         {
             spriteBatch = new SpriteBatch(GraphicsDevice);
-
-            // Debug
-            debugFont = Content.Load<SpriteFont>("Debug/File");
 
             // Background Sprites
             sun = Content.Load<Texture2D>("Sprites/World/circle");
@@ -579,9 +573,7 @@ namespace arcanum
             }
 
             spriteBatch.Draw(selectedItem, new Rectangle(52 + inventory.currentHotbarSlot * 92, 24, 96, 96), Color.White);
-            // Debug overlay rendering
-            // spriteBatch.DrawString(debugFont, $"Current world time: {worldTime}", new Vector2(0, 0), Color.White);
-            // spriteBatch.DrawString(debugFont, $"Frames till next song: {timeTillPlaying}", new Vector2(0, 0), Color.White);
+
             spriteBatch.End();
 
             // rendering
