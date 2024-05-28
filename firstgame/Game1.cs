@@ -6,10 +6,6 @@ using Microsoft.Xna.Framework.Input;
 using Microsoft.Xna.Framework.Media;
 using System;
 using System.Collections.Generic;
-using System.Linq.Expressions;
-using System.Reflection.Metadata;
-using System.Runtime.CompilerServices;
-using System.Text.Json.Serialization;
 
 namespace arcanum
 {
@@ -18,8 +14,14 @@ namespace arcanum
         private GraphicsDeviceManager _graphics;
         private SpriteBatch spriteBatch;
 
+        // Screen effects
+        private Texture2D vignette;
+
         // Background Textures
         private Texture2D sun, backgroundTerrain;
+
+        // Title Textures
+        private Texture2D titleText, playText, exitText;
 
         // Tile Textures
         private Texture2D grassTile, dirtTile, stoneTile, coalTile, copperTile, ironTile, logTile, leafTile, barrierTile, planksTile, torchTile, glassTile;
@@ -211,10 +213,28 @@ namespace arcanum
             }
         }
 
+        public bool rectangleClickCheck(int x, int y, int sizeX, int sizeY)
+        {
+            MouseState mouseState = Mouse.GetState();
+
+            if (x < mouseState.Position.X && mouseState.Position.X < x + sizeX && y < mouseState.Position.Y && mouseState.Position.Y < y + sizeY && mouseState.LeftButton == ButtonState.Pressed)
+            {
+                return true;
+
+            }
+            else
+            {
+                return false;
+
+            }
+
+        }
+
         protected override void Initialize()
         {
             int startRandomNumber = rnd.Next(1, 4);
             int titleVariable = startRandomNumber;
+            gameState = 0;
 
             switch (titleVariable)
             {
@@ -272,9 +292,17 @@ namespace arcanum
         {
             spriteBatch = new SpriteBatch(GraphicsDevice);
 
+            // Screen effect sprites
+            vignette = Content.Load<Texture2D>("Sprites/ScreenEffects/vignette");
+
             // Background Sprites
             sun = Content.Load<Texture2D>("Sprites/World/circle");
             backgroundTerrain = Content.Load<Texture2D>("Sprites/World/upscaledBackground");
+
+            // Title Sprites
+            titleText = Content.Load<Texture2D>("Sprites/Title/arcanum");
+            playText = Content.Load<Texture2D>("Sprites/Title/play");
+            exitText = Content.Load<Texture2D>("Sprites/Title/exit");
 
             // Tile Sprites
             grassTile = Content.Load<Texture2D>("Sprites/grass");
@@ -365,6 +393,22 @@ namespace arcanum
             switch (gameState)
             {
                 case 0:
+                    worldTime += 14;
+                    cameraX++;
+                    if ( rectangleClickCheck(gameWidth / 2 - 128, 512, 256, 48) == true)
+                    {
+                        gameState = 1;
+
+                    }
+
+                    if (rectangleClickCheck(gameWidth / 2 - 128, 576, 256, 48) == true)
+                    {
+                        Exit();
+
+                    }
+
+                    break;
+                case 1:
 
                     terrain.Generate();
                     worldTime = 0;
@@ -372,32 +416,21 @@ namespace arcanum
                     cameraX = terrain.worldWidth * 16;
                     cameraY = terrain.worldHeight * 16;
 
-                    gameState = 1;
-
-                    break;
-
-                case 1:
-
-                    if (terrain.Terrain.Count == terrain.worldWidth * terrain.worldHeight)
-                    {
-                        gameState = 2;
-
-                    }
+                    gameState = 2;
 
                     break;
 
                 case 2:
 
-                    
-                    // Increments world time and resets it after a day has passed
-                    worldTime++;
-
-                    if (86400 < worldTime)
+                    if (terrain.Terrain.Count == terrain.worldWidth * terrain.worldHeight)
                     {
-                        worldTime = 0;
+                        gameState = 3;
+
                     }
 
-                    mediaPlayer(0, 4);
+                    break;
+
+                case 3:
 
                     KeyboardState keyboardState = Keyboard.GetState();
                     MouseState mouseState = Mouse.GetState();
@@ -427,6 +460,16 @@ namespace arcanum
 
             }
 
+            // Increments world time and resets it after a day has passed
+            worldTime++;
+
+            if (86400 < worldTime)
+            {
+                worldTime = 0;
+            }
+
+            mediaPlayer(0, 4);
+
             base.Update(gameTime);
         }
 
@@ -441,103 +484,57 @@ namespace arcanum
             int sunX = (int)(sunCos * gameWidth / 2) + gameWidth / 2;
             int sunY = (int)(sunSin * gameHeight) + gameHeight;
 
-            // Background Renderer
-            spriteBatch.Draw(sun, new Rectangle( sunX - 64, sunY - 64, 128, 128), Color.White);
-            spriteBatch.Draw(backgroundTerrain, new Rectangle(-cameraX / 6 % 2880, gameHeight - 960, 2880, 960), new Color((int)(96 * Math.Clamp((0.5 + -sunSin), 0, 1)), (int)(128 * Math.Clamp((0.1 + -sunSin), 0, 1)), (int)(255 * Math.Clamp((0.1 + -sunSin), 0, 1))));
-            spriteBatch.Draw(backgroundTerrain, new Rectangle(-cameraX / 6 % 2880 + 2880, gameHeight - 960, 2880, 960), new Color((int)(96 * Math.Clamp((0.5 + -sunSin), 0, 1)), (int)(128 * Math.Clamp((0.1 + -sunSin), 0, 1)), (int)(255 * Math.Clamp((0.1 + -sunSin), 0, 1))));
-
-            // Tile renderer
-            for (int xRender = 0; xRender < gameWidth/terrain.TILE_DIMENSIONS + 1; xRender++)
+            switch (gameState)
             {
-                for (int yRender = 0; yRender < gameHeight/terrain.TILE_DIMENSIONS + 1; yRender++)
-                {
-                    int getTerrainByPosition() 
+                case 0:
+                    // Background Renderer
+                    spriteBatch.Draw(sun, new Rectangle(sunX - 64, sunY - 64, 128, 128), Color.White);
+                    spriteBatch.Draw(backgroundTerrain, new Rectangle(-cameraX / 6 % 2880, gameHeight - 960, 2880, 960), new Color((int)(96 * Math.Clamp((0.5 + -sunSin), 0, 1)), (int)(128 * Math.Clamp((0.1 + -sunSin), 0, 1)), (int)(255 * Math.Clamp((0.1 + -sunSin), 0, 1))));
+                    spriteBatch.Draw(backgroundTerrain, new Rectangle(-cameraX / 6 % 2880 + 2880, gameHeight - 960, 2880, 960), new Color((int)(96 * Math.Clamp((0.5 + -sunSin), 0, 1)), (int)(128 * Math.Clamp((0.1 + -sunSin), 0, 1)), (int)(255 * Math.Clamp((0.1 + -sunSin), 0, 1))));
+
+                    // Tile Text
+                    spriteBatch.Draw(titleText, new Rectangle(gameWidth / 2 - 128, 440, 256, 48), Color.White);
+                    spriteBatch.Draw(playText, new Rectangle(gameWidth / 2 - 128, 512, 256, 48), Color.White);
+                    spriteBatch.Draw(exitText, new Rectangle(gameWidth / 2 - 128, 576, 256, 48), Color.White);
+
+                    break;
+
+                case 3:
+                    // Background Renderer ingame
+                    spriteBatch.Draw(sun, new Rectangle(sunX - 64, sunY - 64, 128, 128), Color.White);
+                    spriteBatch.Draw(backgroundTerrain, new Rectangle(-cameraX / 6 % 2880, gameHeight - 960, 2880, 960), new Color((int)(96 * Math.Clamp((0.5 + -sunSin), 0, 1)), (int)(128 * Math.Clamp((0.1 + -sunSin), 0, 1)), (int)(255 * Math.Clamp((0.1 + -sunSin), 0, 1))));
+                    spriteBatch.Draw(backgroundTerrain, new Rectangle(-cameraX / 6 % 2880 + 2880, gameHeight - 960, 2880, 960), new Color((int)(96 * Math.Clamp((0.5 + -sunSin), 0, 1)), (int)(128 * Math.Clamp((0.1 + -sunSin), 0, 1)), (int)(255 * Math.Clamp((0.1 + -sunSin), 0, 1))));
+
+                    // Tile renderer
+                    for (int xRender = 0; xRender < gameWidth / terrain.TILE_DIMENSIONS + 1; xRender++)
                     {
-                        return xRender + cameraX / terrain.TILE_DIMENSIONS 
-                            + (yRender + cameraY / terrain.TILE_DIMENSIONS) * terrain.worldWidth;
-                    }
-
-                    int getLightByPosition()
-                    {
-                        return screenLight[xRender 
-                            + ( yRender * ( gameWidth / terrain.TILE_DIMENSIONS))];
-                    }
-
-                    if (getTerrainByPosition() > 1 && getTerrainByPosition() < (terrain.worldSize) )
-                    {
-                        if (terrainTransparent.Contains(terrain.Terrain[getTerrainByPosition()]) == true && terrain.BackgroundTerrain[getTerrainByPosition()] != 0)
+                        for (int yRender = 0; yRender < gameHeight / terrain.TILE_DIMENSIONS + 1; yRender++)
                         {
-                            spriteBatch.Draw(terrainNames[terrain.BackgroundTerrain[getTerrainByPosition()]], new Rectangle(xRender * terrain.TILE_DIMENSIONS + (int)(-cameraX % terrain.TILE_DIMENSIONS), yRender * terrain.TILE_DIMENSIONS + (int)(-cameraY % terrain.TILE_DIMENSIONS), terrain.TILE_DIMENSIONS, terrain.TILE_DIMENSIONS), new Color(getLightByPosition() / 2, getLightByPosition() / 2, getLightByPosition() / 2));
-
-                        }
-
-                        if (terrain.Terrain[getTerrainByPosition()] != 0)
-                        {
-                            spriteBatch.Draw(terrainNames[terrain.Terrain[getTerrainByPosition()]], new Rectangle(xRender * terrain.TILE_DIMENSIONS + (int)(-cameraX % terrain.TILE_DIMENSIONS), yRender * terrain.TILE_DIMENSIONS + (int)(-cameraY % terrain.TILE_DIMENSIONS), terrain.TILE_DIMENSIONS, terrain.TILE_DIMENSIONS), new Color( getLightByPosition(), getLightByPosition(), getLightByPosition()));
-
-                        }
-
-                    }
-
-                }
-
-            }
-
-            double lightDistance()
-            {
-                return 128;
-            }
-
-            // Screen light effect, raytracing on a budget with my programming skills
-            for (int lightIncrement = 0; lightIncrement < 8;  lightIncrement++)
-            {
-                for (int xRender = 0; xRender < gameWidth / terrain.TILE_DIMENSIONS + 1; xRender++)
-                {
-                    for (int yRender = 0; yRender < gameHeight / terrain.TILE_DIMENSIONS + 1; yRender++)
-                    {
-                        int getTerrainByPosition()
-                        {
-                            return xRender + cameraX / terrain.TILE_DIMENSIONS 
-                                + (yRender + cameraY / terrain.TILE_DIMENSIONS) 
-                                * terrain.worldWidth;
-                        }
-
-                        int getLightByPosition()
-                        {
-                            return screenLight[xRender 
-                                + (yRender * (gameWidth / terrain.TILE_DIMENSIONS))];
-                        }
-
-                        int xLightPosition()
-                        {
-                            double lightFactor = (double)lightIncrement / lightDistance();
-
-                            return (int)(xRender * terrain.TILE_DIMENSIONS) - (int)((cameraX % terrain.TILE_DIMENSIONS) * (lightFactor + 1)) + (int)((xRender * terrain.TILE_DIMENSIONS - sunX) * lightFactor);
-                        }
-
-                        int yLightPosition()
-                        {
-                            double lightFactor = (double)lightIncrement / lightDistance();
-
-                            return (int)(yRender * terrain.TILE_DIMENSIONS) - (int)((cameraY % terrain.TILE_DIMENSIONS) * (lightFactor + 1)) + (int)((yRender * terrain.TILE_DIMENSIONS - sunY) * lightFactor);
-                        }
-
-                        int tileSize()
-                        {
-                            return (int)(terrain.TILE_DIMENSIONS * ((double)lightIncrement / lightDistance() * 2 + 1));
-                        }
-
-                        if (getTerrainByPosition() > 1 && getTerrainByPosition() < (terrain.worldSize))
-                        {
-                            if (terrainTransparent.Contains(terrain.Terrain[getTerrainByPosition()]) == true && terrain.BackgroundTerrain[getTerrainByPosition()] != 0)
+                            int getTerrainByPosition()
                             {
-                                spriteBatch.Draw(terrainNames[terrain.BackgroundTerrain[getTerrainByPosition()]], new Rectangle(xLightPosition(), yLightPosition(), tileSize(), tileSize()), new Color(0, 0, 0, ((int) (24 * (-0.3 - sunSin)))));
-
+                                return xRender + cameraX / terrain.TILE_DIMENSIONS
+                                    + (yRender + cameraY / terrain.TILE_DIMENSIONS) * terrain.worldWidth;
                             }
 
-                            if (terrain.Terrain[getTerrainByPosition()] != 0)
+                            int getLightByPosition()
                             {
-                                spriteBatch.Draw(terrainNames[terrain.Terrain[getTerrainByPosition()]], new Rectangle(xLightPosition(), yLightPosition(), tileSize(), tileSize()), new Color( 0, 0, 0, ((int)(24 * (-0.3 - sunSin)))));
+                                return screenLight[xRender
+                                    + (yRender * (gameWidth / terrain.TILE_DIMENSIONS))];
+                            }
+
+                            if (getTerrainByPosition() > 1 && getTerrainByPosition() < (terrain.worldSize))
+                            {
+                                if (terrainTransparent.Contains(terrain.Terrain[getTerrainByPosition()]) == true && terrain.BackgroundTerrain[getTerrainByPosition()] != 0)
+                                {
+                                    spriteBatch.Draw(terrainNames[terrain.BackgroundTerrain[getTerrainByPosition()]], new Rectangle(xRender * terrain.TILE_DIMENSIONS + (int)(-cameraX % terrain.TILE_DIMENSIONS), yRender * terrain.TILE_DIMENSIONS + (int)(-cameraY % terrain.TILE_DIMENSIONS), terrain.TILE_DIMENSIONS, terrain.TILE_DIMENSIONS), new Color(getLightByPosition() / 2, getLightByPosition() / 2, getLightByPosition() / 2));
+
+                                }
+
+                                if (terrain.Terrain[getTerrainByPosition()] != 0)
+                                {
+                                    spriteBatch.Draw(terrainNames[terrain.Terrain[getTerrainByPosition()]], new Rectangle(xRender * terrain.TILE_DIMENSIONS + (int)(-cameraX % terrain.TILE_DIMENSIONS), yRender * terrain.TILE_DIMENSIONS + (int)(-cameraY % terrain.TILE_DIMENSIONS), terrain.TILE_DIMENSIONS, terrain.TILE_DIMENSIONS), new Color(getLightByPosition(), getLightByPosition(), getLightByPosition()));
+
+                                }
 
                             }
 
@@ -545,34 +542,104 @@ namespace arcanum
 
                     }
 
-                }
+                    double lightDistance()
+                    {
+                        return 128;
+                    }
 
+                    // Screen light effect, raytracing on a budget with my programming skills
+                    for (int lightIncrement = 0; lightIncrement < 8; lightIncrement++)
+                    {
+                        for (int xRender = 0; xRender < gameWidth / terrain.TILE_DIMENSIONS + 1; xRender++)
+                        {
+                            for (int yRender = 0; yRender < gameHeight / terrain.TILE_DIMENSIONS + 1; yRender++)
+                            {
+                                int getTerrainByPosition()
+                                {
+                                    return xRender + cameraX / terrain.TILE_DIMENSIONS
+                                        + (yRender + cameraY / terrain.TILE_DIMENSIONS)
+                                        * terrain.worldWidth;
+                                }
+
+                                int getLightByPosition()
+                                {
+                                    return screenLight[xRender
+                                        + (yRender * (gameWidth / terrain.TILE_DIMENSIONS))];
+                                }
+
+                                int xLightPosition()
+                                {
+                                    double lightFactor = (double)lightIncrement / lightDistance();
+
+                                    return (int)(xRender * terrain.TILE_DIMENSIONS) - (int)((cameraX % terrain.TILE_DIMENSIONS) * (lightFactor + 1)) + (int)((xRender * terrain.TILE_DIMENSIONS - sunX) * lightFactor);
+                                }
+
+                                int yLightPosition()
+                                {
+                                    double lightFactor = (double)lightIncrement / lightDistance();
+
+                                    return (int)(yRender * terrain.TILE_DIMENSIONS) - (int)((cameraY % terrain.TILE_DIMENSIONS) * (lightFactor + 1)) + (int)((yRender * terrain.TILE_DIMENSIONS - sunY) * lightFactor);
+                                }
+
+                                int tileSize()
+                                {
+                                    return (int)(terrain.TILE_DIMENSIONS * ((double)lightIncrement / lightDistance() * 2 + 1));
+                                }
+
+                                if (getTerrainByPosition() > 1 && getTerrainByPosition() < (terrain.worldSize))
+                                {
+                                    if (terrainTransparent.Contains(terrain.Terrain[getTerrainByPosition()]) == true && terrain.BackgroundTerrain[getTerrainByPosition()] != 0)
+                                    {
+                                        spriteBatch.Draw(terrainNames[terrain.BackgroundTerrain[getTerrainByPosition()]], new Rectangle(xLightPosition(), yLightPosition(), tileSize(), tileSize()), new Color(0, 0, 0, ((int)(24 * (-0.3 - sunSin)))));
+
+                                    }
+
+                                    if (terrain.Terrain[getTerrainByPosition()] != 0)
+                                    {
+                                        spriteBatch.Draw(terrainNames[terrain.Terrain[getTerrainByPosition()]], new Rectangle(xLightPosition(), yLightPosition(), tileSize(), tileSize()), new Color(0, 0, 0, ((int)(24 * (-0.3 - sunSin)))));
+
+                                    }
+
+                                }
+
+                            }
+
+                        }
+
+                    }
+
+                    // Entity renderer
+                    for (int i = 0; i < entities.entityType.Count; i++)
+                    {
+                        Vector2 currentRenderPosition = entities.entityPosition[i];
+                        Vector2 currentSpriteDimensions = entities.spriteDimensions[i];
+                        int currentAnimationTextureID = entities.animationTextureID[i];
+
+                        spriteBatch.Draw(entitySpriteNames[currentAnimationTextureID], new Rectangle((int)currentRenderPosition.X - cameraX, (int)currentRenderPosition.Y - cameraY, 4 * (int)currentSpriteDimensions.X, 4 * (int)currentSpriteDimensions.Y), Color.White);
+
+                    }
+
+                    // Extra rendering stuff, includes screen effects and UI
+                    spriteBatch.Draw(vignette, new Rectangle(0, 0, gameWidth, gameHeight), new Color(255, 255, 255, 96));
+
+                    spriteBatch.Draw(hotbar, new Rectangle(24, 24, 796, 96), Color.White);
+                    for (int x = 0; x < 8; x++)
+                    {
+                        if (inventory.inventoryItemID[x] != 0)
+                        {
+                            spriteBatch.Draw(terrainNames[inventory.inventoryItemID[x]], new Rectangle(84 + x * 92, 56, 32, 32), Color.White);
+
+                        }
+
+                    }
+
+                    spriteBatch.Draw(selectedItem, new Rectangle(52 + inventory.currentHotbarSlot * 92, 24, 96, 96), Color.White);
+
+                    break;
+                default:
+
+                    break;
             }
-
-            // Entity renderer
-            for (int i = 0; i < entities.entityType.Count; i++)
-            {
-                Vector2 currentRenderPosition = entities.entityPosition[i];
-                Vector2 currentSpriteDimensions = entities.spriteDimensions[i];
-                int currentAnimationTextureID = entities.animationTextureID[i];
-
-                spriteBatch.Draw(entitySpriteNames[currentAnimationTextureID], new Rectangle((int)currentRenderPosition.X - cameraX, (int)currentRenderPosition.Y - cameraY, 4 * (int) currentSpriteDimensions.X, 4 * (int) currentSpriteDimensions.Y), Color.White);
-
-            }
-
-            // Extra rendering stuff
-            spriteBatch.Draw(hotbar, new Rectangle(24, 24, 796, 96), Color.White);
-            for (int x = 0; x < 8; x++)
-            {
-                if (inventory.inventoryItemID[x] != 0)
-                {
-                    spriteBatch.Draw(terrainNames[inventory.inventoryItemID[x]], new Rectangle(84 + x * 92, 56, 32, 32), Color.White);
-
-                }
-
-            }
-
-            spriteBatch.Draw(selectedItem, new Rectangle(52 + inventory.currentHotbarSlot * 92, 24, 96, 96), Color.White);
 
             spriteBatch.End();
 
